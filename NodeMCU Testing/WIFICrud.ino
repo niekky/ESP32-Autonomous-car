@@ -89,6 +89,7 @@ void readMPU(){
     json.set("Ax",ax);
     json.set("Ay",ay);
     json.set("Az",az);
+
     // Thực hiện theo chu kỳ 25ms
     if (millis()-previousTime4>=25){
         // Gửi JsonData đến Firebase
