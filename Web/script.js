@@ -24,12 +24,27 @@ var toggle=false;
 const engine_status=document.querySelector(".engine_status");
 const goToLogin=document.querySelector(".back");
 const car_id=localStorage.getItem("storageName");
+const graph = document.getElementById('graph');
 console.log(car_id);
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db=getDatabase(app);
 const dbRef=ref(db);
+
+initializeGraph();
+
+// WIP
+function getPIDOutput(){
+  return Math.random()-0.5;
+}
+
+function initializeGraph(){
+  Plotly.newPlot( graph, [{
+    y:[getPIDOutput()],
+    type:"line" }], {
+    margin: { t: 0 } } );
+}
 
 //Read previous inputs
 get(child(dbRef,"IDs/"+car_id)).then((snapshot) => {
@@ -90,11 +105,31 @@ engine_status.addEventListener("click", function(){
     if (n%2==0){
         engine_status.innerText="OFF";
         toggle=false;
+
     // ON mode
     } else {
         engine_status.innerText="ON";
         toggle=true;
+        // GRAPHING
+        initializeGraph();
+        var cnt=0;
+        var realtime= setInterval(function(){
+          Plotly.extendTraces(graph,{ y:[[getPIDOutput()]]},[0]);
+          cnt++;
+          if (cnt>250){
+            Plotly.relayout(graph,{
+              xaxis:{
+                range:[cnt-250,cnt]
+              } 
+            })
+          }
+          if (toggle==false){
+            clearInterval(realtime);
+          }
+        },20);
     }
+    
+
     // Update toggle value
     get(child(dbRef,"IDs/"+car_id)).then((snapshot) => {
         if (snapshot.exists()){
@@ -120,3 +155,4 @@ engine_status.addEventListener("click", function(){
 goToLogin.addEventListener("click", function(){
     window.location.href = "login.html";
 })
+

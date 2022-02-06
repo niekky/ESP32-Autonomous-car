@@ -1,6 +1,7 @@
 {
   "type": "module",
   "dependencies": {
-    "firebase": "^9.6.5"
+    "firebase": "^9.6.5",
+    "plotly.js-dist": "^2.9.0"
   }
 }
