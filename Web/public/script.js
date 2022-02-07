@@ -153,6 +153,6 @@ engine_status.addEventListener("click", function(){
     })
 
 goToLogin.addEventListener("click", function(){
-    window.location.href = "login.html";
+    window.location.href = "index.html";
 })
 

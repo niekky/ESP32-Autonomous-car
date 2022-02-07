@@ -33,7 +33,7 @@ document.querySelector(".login").addEventListener("click", function(){
         if (id_list.includes(ID_name)){
           console.log("Login Successfully!");
           localStorage.setItem("storageName",ID_name);
-          window.location.href = "index.html";
+          window.location.href = "controller.html";
         } else {
           console.log("Wrong ID!");
         }
