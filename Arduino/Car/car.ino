@@ -1,32 +1,58 @@
+// Thư viện đèn
 #include <QTRSensors.h>
+// Thư viện servo
 #include <Servo.h>
+
+// Thư viện của Firebase và ESP8266WIFI
+#include "FirebaseESP8266.h"
+#include <ESP8266WiFi.h>
+
 //Cách QTR hoạt động
 //SETUP:
 //10s cho việc calibrate sensor
 //loop sẽ chạy từ 0-5000
+String id_car="car_1";
 QTRSensors qtr;
 QTRSensors qtr2;
-double kp=0;
-double ki=0;
-double kd=0;
-int SERVOTURN=0;
+float kp=0;
+float ki=0;
+float kd=0;
+int pid_output=0;
+int servo_wip=90;
+int motor_speed=0;
 int error=0;
 int previouserror=0;
-int angleturn=0;
+boolean motor_toggle=false;
+
 uint16_t position=0;
 uint16_t position2=0;
 float previous_error = 0, previous_I = 0;
-byte motor[4]={3,5,6,7}; 
 const uint8_t SensorCount = 5;
 uint16_t sensorValues[SensorCount];
 uint16_t sensorValues2[SensorCount];
 Servo steering;
 
+unsigned long previousTime=0;
+unsigned long previousTime2=0;
+
+// HOST lấy từ Project Settings/Service Accounts/Firebase Admin SDK/databaseURL
+#define FIREBASE_HOST "https://nodemcu-a4907-default-rtdb.asia-southeast1.firebasedatabase.app" 
+// Auth lấy từ Project Settings/Service Accounts/Database Secrets/Secret
+#define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
+
+// WIFI_SSID: Tên WIFI
+#define WIFI_SSID "SCTV-CAM07"
+// WIFI_PASSWORD: Tên pass của WIFI
+#define WIFI_PASSWORD "1234567899"
+
+FirebaseData db;
+FirebaseJson json;
+
 /////////////////////////////////////////////////////////////////////////////////////////
 
-class newpidConfig(){
+class newpidConfig{
   public:
-    newpidConfig(float kpp,float kip,float kdp){
+    void setConfig(float kpp,float kip,float kdp){
       kp=kpp;
       ki=kip;
       kd=kdp;
@@ -41,15 +67,15 @@ class newpidConfig(){
     }
 
     float getKI(){
-      return ki
+      return ki;
     }
 
     float getError(){
-      return error
+      return error;
     }
 
-    int PIDloop(int error){
-      output=kp*error + kd*(error - previous_error);
+    float PIDloop(int error){
+      float output=kp*error + kd*(error - previous_error);
       previous_error = error;
       return output;
     }
@@ -59,7 +85,7 @@ class newpidConfig(){
     float ki;
     float kd;
     int previous_error=0;
-}
+};
 
 float pidConfig(float p,float i,float d){
   kp=p;
@@ -68,16 +94,7 @@ float pidConfig(float p,float i,float d){
 }
 
 void ServoDefault(){
-  steering.write(90);
-}
-
-void readline(){
-    Serial.print(position);
-    Serial.print('\t');
-    Serial.print(position2);
-    Serial.print('\t');
-    Serial.print(error);
-    delay(250);
+  steering.write(servo_wip);
 }
 
 void SensorCalibrate(){
@@ -194,40 +211,140 @@ void SensorCalibrate2(){
   delay(1000);
 }
 
+void valueChangeDetect(String value,String previous_value){
+  if (value!=previous_value){
+    Serial.println("LOG: do stuff");
+  }
+}
+
+void readFromDB(){
+  if (millis()-previousTime>=100){
+    if (Firebase.getString(db,"IDs/"+id_car+"/P")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
+        String dp_kp=db.to<String>();
+        kp=dp_kp.toFloat();
+      }
+    } else {
+      Serial.println(db.errorReason());
+    }
+
+    if (Firebase.getString(db,"/IDs/"+id_car+"/D")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
+        String dp_kd=db.to<String>();
+        kd=dp_kd.toFloat();
+      }
+    } else {
+      Serial.println(db.errorReason());
+    }
+
+    if (Firebase.getString(db,"/IDs/"+id_car+"/I")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
+        String dp_ki=db.to<String>();
+        ki=dp_ki.toFloat();
+      }
+    } else {
+      Serial.println(db.errorReason());
+    }
+
+    if (Firebase.getString(db,"/IDs/"+id_car+"/Motor")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
+        String db_motor_speed=db.to<String>();
+        motor_speed=db_motor_speed.toInt();
+      }
+    } else {
+      Serial.println(db.errorReason());
+    }
+    
+    if (Firebase.getString(db,"/IDs/"+id_car+"/Servo")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
+        String db_servo_wip=db.to<String>();
+        servo_wip=db_servo_wip.toInt();
+      }
+    } else {
+      Serial.println(db.errorReason());
+    }
+
+    if (Firebase.getBool(db,"/IDs/"+id_car+"/Toggle")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_boolean){
+        motor_toggle=db.to<bool>();
+      }
+    } else {
+      Serial.println(db.errorReason());
+    }
+
+    previousTime=millis();
+  }
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////
+
+// Init PID class
+newpidConfig newPIDConfig;
 
 void setup()
 {
-  steering.attach(motor[0]);
+  steering.attach(D8);
   ServoDefault();
-  for (int i=0; i<4; i++){
-    pinMode(motor[i],OUTPUT);
+  pinMode(D6,OUTPUT);
+  pinMode(D7,OUTPUT);
+  Serial.begin(115200);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("Connecting to WiFi");
+
+  // Kiểm tra kết nối WIFI
+  while (WiFi.status() != WL_CONNECTED){
+    Serial.print(".");
+    delay(300);
   }
-  Serial.begin(9600);
-  SensorCalibrate1();
-  SensorCalibrate2();
-  pidConfig(0.1,0,0); //0.02 0 0.01
+  Serial.println();
+  Serial.print("Connected with IP: ");
+  Serial.println(WiFi.localIP());
+  Serial.println();
+  
+   // Kết nối với Firebase
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+  Firebase.reconnectWiFi(true);
+  // SensorCalibrate1();
+  // SensorCalibrate2();
+  // pidConfig(0.1,0,0); //0.02 0 0.01
 }
 
 void loop()
 {
-  digitalWrite(motor[2],1);
-  digitalWrite(motor[3],0);
-  analogWrite(motor[1],180);
-  position = qtr.readLineBlack(sensorValues);
-  position2= 4000-qtr2.readLineBlack(sensorValues2);
-  Serial.print(position);
-  Serial.print(" ");
-  Serial.println(position2);
-  error=position2-position;
-  SERVOTURN = kp*error + kd*(error - previouserror);
-  previouserror = error;
-  angleturn=SERVOTURN;
-  if (angleturn>40) angleturn=40;
-  if (angleturn<-30) angleturn=-30;
-  steering.write(90-angleturn);
+  // Đọc inputs từ Firebase
+  readFromDB();
+
+  // Motor
+  if (motor_toggle==true){
+    digitalWrite(D6,1);
+    digitalWrite(D7,0);
+    analogWrite(D5,motor_speed);
+  } else{
+    digitalWrite(D6,0);
+    digitalWrite(D7,0);
+  }
+    
+  // position = qtr.readLineBlack(sensorValues);
+  // position2= 4000-qtr2.readLineBlack(sensorValues2);
+
+  // Print values from db
+  Serial.println("P: "+String(kp)+" D: "+String(kd)+" I: "+String(ki)+" Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle));
   
-  readline();
+  newPIDConfig.setConfig(kp,ki,kd);
+
+  error=position2-position;
+  pid_output = kp*error + kd*(error - previouserror);
+  previouserror = error;
+
+  // Send PID outputs to DB
+  if (millis()-previousTime2>=50){
+    Firebase.setInt(db,"IDs/"+id_car+"/PID_outputs",120);
+    previousTime2=millis();
+  }
+
+  // if (angleturn>40) pid_output=40;
+  // if (angleturn<-30) pid_output=-30;
+  // steering.write(90-pid_output);
+  steering.write(servo_wip);
+  
 }

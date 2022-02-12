@@ -70,6 +70,7 @@ void setup(){
     Serial.println();
 
     // Kết nối với Firebase
+    
     Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
     Firebase.reconnectWiFi(true);
 
