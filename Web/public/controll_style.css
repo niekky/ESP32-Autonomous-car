@@ -297,11 +297,6 @@ button {
     border-radius: 5px 5px 5px 5px;
 }
 
-.graph{
-  width:300px;
-  height:200px;
-}
-
 
 /* OTHERS */
 
@@ -375,10 +370,5 @@ button {
     width: 20%;
     -webkit-border-radius: 3px 3px 3px 3px;
     border-radius: 3px 3px 3px 3px;
-  }
-
-  .graph{
-    width:200px;
-    height:100px;
   }
 }
