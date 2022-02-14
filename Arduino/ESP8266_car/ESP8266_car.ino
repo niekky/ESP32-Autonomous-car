@@ -41,9 +41,9 @@ unsigned long previousTime2=0;
 #define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
 
 // WIFI_SSID: Tên WIFI
-#define WIFI_SSID "SCTV-CAM07"
+#define WIFI_SSID "SS A20 FREE"
 // WIFI_PASSWORD: Tên pass của WIFI
-#define WIFI_PASSWORD "1234567899"
+#define WIFI_PASSWORD "19781902Cfc"
 
 FirebaseData db;
 FirebaseJson json;
