@@ -1,9 +1,12 @@
+#include <analogWrite.h>
+#include <ESP32PWM.h>
+#include <ESP32Servo.h>
+#include <ESP32Tone.h>
 
 // Thư viện đèn
 #include <QTRSensors.h>
 // Thư viện servo
-#include <Servo.h>
-
+// #include <Servo.h>
 // Thư viện của Firebase và ESP8266WIFI
 #include "FirebaseESP32.h"
 #include <WiFi.h>
@@ -32,6 +35,7 @@ const uint8_t SensorCount = 5;
 uint16_t sensorValues[SensorCount];
 uint16_t sensorValues2[SensorCount];
 Servo steering;
+
 
 unsigned long previousTime=0;
 unsigned long previousTime2=0;
@@ -282,15 +286,35 @@ void readFromDB(){
 // Init PID class
 newpidConfig newPIDConfig;
 
+// PWM Setup:
+double PWM_frequency=30000;
+uint8_t PWM_resolution=8;
+uint8_t PWM_channel0=0;
+
+// Servo PWM
+// double Servo_frequency=50;
+// uint8_t Servo_resolution=8;
+// uint8_t Servo_channel0=0;
+
+Servo myservo;
+
 void setup()
 {
-  // Servo: GPIO: 13
-  steering.attach(13);
-  ServoDefault();
-  pinMode(6,OUTPUT);
-  pinMode(7,OUTPUT);
-  ledcAttachPin(12,0);
-  ledcSetup(0,1000,4);
+  // Servo: GPIO: 15
+  // steering.attach(15,1);
+  // ServoDefault();
+  pinMode(16,OUTPUT);
+  pinMode(17,OUTPUT);
+  
+  ledcAttachPin(12,PWM_channel0);
+  ledcSetup(PWM_channel0,PWM_frequency,PWM_resolution);
+// Servo
+  // ledcAttachPin(15,Servo_channel0);
+  // ledcSetup(Servo_channel0,Servo_frequency,Servo_resolution);
+
+  myservo.setPeriodHertz(50);
+  myservo.attach(15);
+
   Serial.begin(115200);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to WiFi");
@@ -320,15 +344,17 @@ void loop()
 
   // Motor
   // Note: 
-  // Toggle GPIO: 6; GPIO:7
+  // Toggle GPIO: 16; GPIO:17
   // Speed: GPIO: 12
   if (motor_toggle==true){
-    digitalWrite(6,1);
-    digitalWrite(7,0);
-    analogWrite(12,motor_speed);
+    digitalWrite(16,1);
+    digitalWrite(17,0);
+    ledcWrite(PWM_channel0,motor_speed);
   } else{
-    digitalWrite(6,0);
-    digitalWrite(7,0);
+    digitalWrite(16,0);
+    digitalWrite(17,0);
+    ledcWrite(PWM_channel0,0);
+
   }
     
   // position = qtr.readLineBlack(sensorValues);
@@ -352,6 +378,8 @@ void loop()
   // if (angleturn>40) pid_output=40;
   // if (angleturn<-30) pid_output=-30;
   // steering.write(90-pid_output);
-  steering.write(servo_wip);
-  
+  // steering.write(servo_wip);
+  // steering.write(90);
+  // ledcWrite(Servo_channel0,servo_wip);
+  myservo.write(servo_wip);
 }
