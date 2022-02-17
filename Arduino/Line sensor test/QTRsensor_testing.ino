@@ -1,15 +1,6 @@
 // Thư viện đèn
 #include <QTRSensors.h>
-// Thư viện servo
-// #include <Servo.h>
-// Thư viện của Firebase và ESP8266WIFI
-#include "FirebaseESP32.h"
-#include <WiFi.h>
 
-//Cách QTR hoạt động
-//SETUP:
-//10s cho việc calibrate sensor
-//loop sẽ chạy từ 0-5000
 QTRSensors qtr;
 QTRSensors qtr2;
 
@@ -21,22 +12,9 @@ uint16_t sensorValues[SensorCount];
 uint16_t sensorValues2[SensorCount];
 // Servo steering;
 
-
 unsigned long previousTime=0;
 unsigned long previousTime2=0;
 
-// HOST lấy từ Project Settings/Service Accounts/Firebase Admin SDK/databaseURL
-#define FIREBASE_HOST "https://nodemcu-a4907-default-rtdb.asia-southeast1.firebasedatabase.app" 
-// Auth lấy từ Project Settings/Service Accounts/Database Secrets/Secret
-#define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
-
-// WIFI_SSID: Tên WIFI
-#define WIFI_SSID "SS A20 FREE"
-// WIFI_PASSWORD: Tên pass của WIFI
-#define WIFI_PASSWORD "19781902Cfc"
-
-FirebaseData db;
-FirebaseJson json;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -80,15 +58,8 @@ void SensorCalibrate(){
 
 void SensorCalibrate1(){
   // configure the sensors
-  pinMode(33,INPUT);
-  pinMode(34,INPUT);
-  pinMode(35,INPUT);
-  pinMode(36,INPUT);
-  pinMode(39,INPUT);
-
   qtr.setTypeRC();
-  qtr.setSensorPins((const uint8_t[]){33,34,35,36,39}, SensorCount);
-  qtr.setEmitterPin(22);
+  qtr.setSensorPins((const uint8_t[]){25,26,27,32,33}, SensorCount);
   pinMode(2, OUTPUT);
   digitalWrite(2, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
 
@@ -163,22 +134,6 @@ void SensorCalibrate2(){
 void setup()
 {
   Serial.begin(115200);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.print("Connecting to WiFi");
-
-  // Kiểm tra kết nối WIFI
-  while (WiFi.status() != WL_CONNECTED){
-    Serial.print(".");
-    delay(300);
-  }
-  Serial.println();
-  Serial.print("Connected with IP: ");
-  Serial.println(WiFi.localIP());
-  Serial.println();
-  
-   // Kết nối với Firebase
-  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
-  Firebase.reconnectWiFi(true);
   SensorCalibrate1();
   // SensorCalibrate2();
   
@@ -189,6 +144,5 @@ void loop()
   // Đọc inputs từ Firebase
   position = qtr.readLineBlack(sensorValues);
   Serial.println("Sensor: "+String(position));
-  delay(100);
   // position2= 4000-qtr2.readLineBlack(sensorValues2);
 }

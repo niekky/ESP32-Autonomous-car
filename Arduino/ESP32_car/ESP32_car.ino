@@ -297,9 +297,8 @@ uint8_t Servo_channel0=0;
 
 void setup()
 {
-  
-  ledcAttachPin(25,2);
   ledcSetup(2,50,PWM_resolution);
+  ledcAttachPin(25,2);
   
   pinMode(16,OUTPUT);
   pinMode(17,OUTPUT);
