@@ -1,6 +1,6 @@
 #include <analogWrite.h>
 #include <ESP32PWM.h>
-#include <ESP32Servo.h>
+// #include <ESP32Servo.h>
 #include <ESP32Tone.h>
 
 // Thư viện đèn
@@ -34,7 +34,7 @@ float previous_error = 0, previous_I = 0;
 const uint8_t SensorCount = 5;
 uint16_t sensorValues[SensorCount];
 uint16_t sensorValues2[SensorCount];
-Servo steering;
+// Servo steering;
 
 
 unsigned long previousTime=0;
@@ -98,9 +98,9 @@ float pidConfig(float p,float i,float d){
   kd=d;
 }
 
-void ServoDefault(){
-  steering.write(servo_wip);
-}
+// void ServoDefault(){
+//   steering.write(servo_wip);
+// }
 
 void SensorCalibrate(){
   // configure the sensors
@@ -287,16 +287,16 @@ void readFromDB(){
 newpidConfig newPIDConfig;
 
 // PWM Setup:
-double PWM_frequency=30000;
-uint8_t PWM_resolution=8;
-uint8_t PWM_channel0=0;
+// double PWM_frequency=30000;
+// uint8_t PWM_resolution=8;
+// uint8_t PWM_channel0=0;
 
 // Servo PWM
-// double Servo_frequency=50;
-// uint8_t Servo_resolution=8;
-// uint8_t Servo_channel0=0;
+double Servo_frequency=50;
+uint8_t Servo_resolution=8;
+uint8_t Servo_channel0=0;
 
-Servo myservo;
+// Servo myservo;
 
 void setup()
 {
@@ -305,15 +305,15 @@ void setup()
   // ServoDefault();
   pinMode(16,OUTPUT);
   pinMode(17,OUTPUT);
-  
-  ledcAttachPin(12,PWM_channel0);
-  ledcSetup(PWM_channel0,PWM_frequency,PWM_resolution);
+  pinMode(25,OUTPUT);
+  // ledcAttachPin(13,PWM_channel0);
+  // ledcSetup(PWM_channel0,PWM_frequency,PWM_resolution);
 // Servo
-  // ledcAttachPin(15,Servo_channel0);
-  // ledcSetup(Servo_channel0,Servo_frequency,Servo_resolution);
+  ledcSetup(Servo_channel0,Servo_frequency,Servo_resolution);
+  ledcAttachPin(25,Servo_channel0);
 
-  myservo.setPeriodHertz(50);
-  myservo.attach(15);
+  // myservo.setPeriodHertz(50);
+  // myservo.attach(15);
 
   Serial.begin(115200);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -378,8 +378,7 @@ void loop()
   // if (angleturn>40) pid_output=40;
   // if (angleturn<-30) pid_output=-30;
   // steering.write(90-pid_output);
-  // steering.write(servo_wip);
-  // steering.write(90);
   // ledcWrite(Servo_channel0,servo_wip);
-  myservo.write(servo_wip);
+  // myservo.write(90);
+  
 }
