@@ -1,5 +1,5 @@
 {
-    "configuration": "FlashFreq=80,UploadSpeed=115200",
+    "configuration": "FlashFreq=80,UploadSpeed=921600",
     "board": "esp32:esp32:nodemcu-32s",
     "sketch": "Arduino\\ESP32_car\\ESP32_car.ino",
     "port": "COM3"

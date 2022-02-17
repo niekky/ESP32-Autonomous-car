@@ -1,8 +1,4 @@
-#include <analogWrite.h>
-#include <ESP32PWM.h>
-#include <ESP32Servo.h>
-#include <ESP32Tone.h>
-
+#include "esp32-hal-ledc.h"
 // Thư viện đèn
 #include <QTRSensors.h>
 // Thư viện servo
@@ -34,7 +30,6 @@ float previous_error = 0, previous_I = 0;
 const uint8_t SensorCount = 5;
 uint16_t sensorValues[SensorCount];
 uint16_t sensorValues2[SensorCount];
-Servo steering;
 
 
 unsigned long previousTime=0;
@@ -46,9 +41,9 @@ unsigned long previousTime2=0;
 #define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
 
 // WIFI_SSID: Tên WIFI
-#define WIFI_SSID "SS A20 FREE"
+#define WIFI_SSID "SCTV-CAM07"
 // WIFI_PASSWORD: Tên pass của WIFI
-#define WIFI_PASSWORD "19781902Cfc"
+#define WIFI_PASSWORD "1234567899"
 
 FirebaseData db;
 FirebaseJson json;
@@ -287,33 +282,29 @@ void readFromDB(){
 newpidConfig newPIDConfig;
 
 // PWM Setup:
-double PWM_frequency=30000;
-uint8_t PWM_resolution=8;
-uint8_t PWM_channel0=0;
+double PWM_frequency=1000;
+uint8_t PWM_resolution=10;
+uint8_t PWM_channel0=13;
 
 // Servo PWM
 // double Servo_frequency=50;
 // uint8_t Servo_resolution=8;
 // uint8_t Servo_channel0=0;
 
-Servo myservo;
-
 void setup()
 {
-  // Servo: GPIO: 15
-  // steering.attach(15,1);
-  // ServoDefault();
+  
+  ledcAttachPin(25,2);
+  ledcSetup(2,50,PWM_resolution);
+  
   pinMode(16,OUTPUT);
   pinMode(17,OUTPUT);
   
-  ledcAttachPin(12,PWM_channel0);
-  ledcSetup(PWM_channel0,PWM_frequency,PWM_resolution);
+  // ledcAttachPin(13,PWM_channel0);
+  // ledcSetup(PWM_channel0,PWM_frequency,PWM_resolution);
 // Servo
   // ledcAttachPin(15,Servo_channel0);
   // ledcSetup(Servo_channel0,Servo_frequency,Servo_resolution);
-
-  myservo.setPeriodHertz(50);
-  myservo.attach(15);
 
   Serial.begin(115200);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -336,7 +327,6 @@ void setup()
   // SensorCalibrate2();
   // pidConfig(0.1,0,0); //0.02 0 0.01
 }
-
 void loop()
 {
   // Đọc inputs từ Firebase
@@ -349,11 +339,11 @@ void loop()
   if (motor_toggle==true){
     digitalWrite(16,1);
     digitalWrite(17,0);
-    ledcWrite(PWM_channel0,motor_speed);
+    // ledcWrite(PWM_channel0,motor_speed);
   } else{
     digitalWrite(16,0);
     digitalWrite(17,0);
-    ledcWrite(PWM_channel0,0);
+    // ledcWrite(PWM_channel0,0);
 
   }
     
@@ -378,8 +368,9 @@ void loop()
   // if (angleturn>40) pid_output=40;
   // if (angleturn<-30) pid_output=-30;
   // steering.write(90-pid_output);
-  // steering.write(servo_wip);
+  // steering.write(servo_wip)
+  ;
   // steering.write(90);
-  // ledcWrite(Servo_channel0,servo_wip);
-  myservo.write(servo_wip);
+  ledcWrite(2,servo_wip);
+
 }
