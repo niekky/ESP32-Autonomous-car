@@ -1,4 +1,8 @@
-#include "esp32-hal-ledc.h"
+#include <analogWrite.h>
+#include <ESP32PWM.h>
+// #include <ESP32Servo.h>
+#include <ESP32Tone.h>
+
 // Thư viện đèn
 #include <QTRSensors.h>
 // Thư viện servo
@@ -93,9 +97,9 @@ float pidConfig(float p,float i,float d){
   kd=d;
 }
 
-void ServoDefault(){
-  steering.write(servo_wip);
-}
+// void ServoDefault(){
+//   steering.write(servo_wip);
+// }
 
 void SensorCalibrate(){
   // configure the sensors
@@ -287,9 +291,9 @@ uint8_t PWM_resolution=10;
 uint8_t PWM_channel0=13;
 
 // Servo PWM
-// double Servo_frequency=50;
-// uint8_t Servo_resolution=8;
-// uint8_t Servo_channel0=0;
+double Servo_frequency=50;
+uint8_t Servo_resolution=8;
+uint8_t Servo_channel0=0;
 
 void setup()
 {
@@ -303,8 +307,8 @@ void setup()
   // ledcAttachPin(13,PWM_channel0);
   // ledcSetup(PWM_channel0,PWM_frequency,PWM_resolution);
 // Servo
-  // ledcAttachPin(15,Servo_channel0);
-  // ledcSetup(Servo_channel0,Servo_frequency,Servo_resolution);
+  ledcSetup(Servo_channel0,Servo_frequency,Servo_resolution);
+  ledcAttachPin(25,Servo_channel0);
 
   Serial.begin(115200);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
