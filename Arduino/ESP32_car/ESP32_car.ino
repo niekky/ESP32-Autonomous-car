@@ -1,9 +1,4 @@
-#include <analogWrite.h>
-#include <ESP32PWM.h>
-// #include <ESP32Servo.h>
-#include <ESP32Tone.h>
-
-// Thư viện đèn
+// Thư viện line sensor
 #include <QTRSensors.h>
 // Thư viện servo
 // #include <Servo.h>
@@ -11,13 +6,8 @@
 #include "FirebaseESP32.h"
 #include <WiFi.h>
 
-//Cách QTR hoạt động
-//SETUP:
-//10s cho việc calibrate sensor
-//loop sẽ chạy từ 0-5000
 String id_car="car_2";
 QTRSensors qtr;
-QTRSensors qtr2;
 float kp=0;
 float ki=0;
 float kd=0;
@@ -29,11 +19,10 @@ int previouserror=0;
 boolean motor_toggle=false;
 
 uint16_t position=0;
-uint16_t position2=0;
+
 float previous_error = 0, previous_I = 0;
-const uint8_t SensorCount = 5;
+const uint8_t SensorCount = 10;
 uint16_t sensorValues[SensorCount];
-uint16_t sensorValues2[SensorCount];
 
 
 unsigned long previousTime=0;
@@ -48,6 +37,17 @@ unsigned long previousTime2=0;
 #define WIFI_SSID "SCTV-CAM07"
 // WIFI_PASSWORD: Tên pass của WIFI
 #define WIFI_PASSWORD "1234567899"
+
+// SERVO CONFIG
+#define SERVO_CHANNEL_0     0
+#define SERVO_TIMER_13_BIT  13
+#define SERVO_BASE_FREQ     50
+#define SERVO_PIN            5
+// MOTOR CONFIG
+#define MOTOR_CHANNEL_0     1
+#define MOTOR_TIMER_13_BIT  13
+#define MOTOR_BASE_FREQ     8000
+#define MOTOR_PIN           13
 
 FirebaseData db;
 FirebaseJson json;
@@ -104,12 +104,10 @@ float pidConfig(float p,float i,float d){
 void SensorCalibrate(){
   // configure the sensors
   qtr.setTypeRC();
-  qtr.setSensorPins((const uint8_t[]){14,15,16,17,18,11,10,9,8,4}, 10);
-  qtr.setEmitterPin(2);
+  qtr.setSensorPins((const uint8_t[]){16, 17, 18, 19, 21, 25, 26, 27,32,33}, 10);
 
-  delay(500);
-  pinMode(13, OUTPUT);
-  digitalWrite(13, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
+  pinMode(2, OUTPUT);
+  digitalWrite(2, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
 
   // 2.5 ms RC read timeout (default) * 10 reads per calibrate() call
   // = ~25 ms per calibrate() call.
@@ -118,7 +116,7 @@ void SensorCalibrate(){
   {
     qtr.calibrate();
   }
-  digitalWrite(13, LOW); // turn off Arduino's LED to indicate we are through with calibration
+  digitalWrite(2, LOW); // turn off Arduino's LED to indicate we are through with calibration
 
   // print the calibration minimum values measured when emitters were on
   for (uint8_t i = 0; i < SensorCount; i++)
@@ -132,82 +130,6 @@ void SensorCalibrate(){
   for (uint8_t i = 0; i < SensorCount; i++)
   {
     Serial.print(qtr.calibrationOn.maximum[i]);
-    Serial.print(' ');
-  }
-  Serial.println();
-  Serial.println();
-  delay(1000);
-}
-
-void SensorCalibrate1(){
-  // configure the sensors
-  qtr.setTypeRC();
-  qtr.setSensorPins((const uint8_t[]){14,15,16,17,18}, SensorCount);
-  qtr.setEmitterPin(2);
-
-  delay(500);
-  pinMode(13, OUTPUT);
-  digitalWrite(13, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
-
-  // 2.5 ms RC read timeout (default) * 10 reads per calibrate() call
-  // = ~25 ms per calibrate() call.
-  // Call calibrate() 400 times to make calibration take about 10 seconds.
-  for (uint16_t i = 0; i < 400; i++)
-  {
-    qtr.calibrate();
-  }
-  digitalWrite(13, LOW); // turn off Arduino's LED to indicate we are through with calibration
-
-  // print the calibration minimum values measured when emitters were on
-  for (uint8_t i = 0; i < SensorCount; i++)
-  {
-    Serial.print(qtr.calibrationOn.minimum[i]);
-    Serial.print(' ');
-  }
-  Serial.println();
-
-  // print the calibration maximum values measured when emitters were on
-  for (uint8_t i = 0; i < SensorCount; i++)
-  {
-    Serial.print(qtr.calibrationOn.maximum[i]);
-    Serial.print(' ');
-  }
-  Serial.println();
-  Serial.println();
-  delay(1000);
-}
-
-void SensorCalibrate2(){
-  // configure the sensors
-  qtr2.setTypeRC();
-  qtr2.setSensorPins((const uint8_t[]){11,10,9,8,4}, SensorCount);
-  qtr2.setEmitterPin(2);
-
-  delay(500);
-  pinMode(13, OUTPUT);
-  digitalWrite(13, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
-
-  // 2.5 ms RC read timeout (default) * 10 reads per calibrate() call
-  // = ~25 ms per calibrate() call.
-  // Call calibrate() 400 times to make calibration take about 10 seconds.
-  for (uint16_t i = 0; i < 400; i++)
-  {
-    qtr2.calibrate();
-  }
-  digitalWrite(13, LOW); // turn off Arduino's LED to indicate we are through with calibration
-
-  // print the calibration minimum values measured when emitters were on
-  for (uint8_t i = 0; i < SensorCount; i++)
-  {
-    Serial.print(qtr2.calibrationOn.minimum[i]);
-    Serial.print(' ');
-  }
-  Serial.println();
-  
-  // print the calibration maximum values measured when emitters were on
-  for (uint8_t i = 0; i < SensorCount; i++)
-  {
-    Serial.print(qtr2.calibrationOn.maximum[i]);
     Serial.print(' ');
   }
   Serial.println();
@@ -285,29 +207,18 @@ void readFromDB(){
 // Init PID class
 newpidConfig newPIDConfig;
 
-// PWM Setup:
-double PWM_frequency=1000;
-uint8_t PWM_resolution=10;
-uint8_t PWM_channel0=13;
-
-// Servo PWM
-double Servo_frequency=50;
-uint8_t Servo_resolution=8;
-uint8_t Servo_channel0=0;
-
 void setup()
 {
-  ledcSetup(2,50,PWM_resolution);
-  ledcAttachPin(25,2);
+  // MOTOR ON/OFF PINS
+  pinMode(12,OUTPUT);
+  pinMode(14,OUTPUT);
   
-  pinMode(16,OUTPUT);
-  pinMode(17,OUTPUT);
+  ledcSetup(MOTOR_CHANNEL_0, MOTOR_BASE_FREQ, MOTOR_TIMER_13_BIT);
+  ledcAttachPin(MOTOR_PIN, MOTOR_CHANNEL_0);
   
-  // ledcAttachPin(13,PWM_channel0);
-  // ledcSetup(PWM_channel0,PWM_frequency,PWM_resolution);
-// Servo
-  ledcSetup(Servo_channel0,Servo_frequency,Servo_resolution);
-  ledcAttachPin(25,Servo_channel0);
+  ledcSetup(SERVO_CHANNEL_0, SERVO_BASE_FREQ, SERVO_TIMER_13_BIT);
+  ledcAttachPin(SERVO_PIN, SERVO_CHANNEL_0);
+  
 
   Serial.begin(115200);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -326,8 +237,7 @@ void setup()
    // Kết nối với Firebase
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
   Firebase.reconnectWiFi(true);
-  // SensorCalibrate1();
-  // SensorCalibrate2();
+  // SensorCalibrate();
   // pidConfig(0.1,0,0); //0.02 0 0.01
 }
 void loop()
@@ -337,16 +247,16 @@ void loop()
 
   // Motor
   // Note: 
-  // Toggle GPIO: 16; GPIO:17
-  // Speed: GPIO: 12
+  // Toggle GPIO: 12; GPIO:14
+  // Speed: GPIO: 13
   if (motor_toggle==true){
-    digitalWrite(16,1);
-    digitalWrite(17,0);
-    // ledcWrite(PWM_channel0,motor_speed);
+    digitalWrite(12,1);
+    digitalWrite(14,0);
+    ledcWrite(MOTOR_CHANNEL_0,motor_speed);
   } else{
-    digitalWrite(16,0);
-    digitalWrite(17,0);
-    // ledcWrite(PWM_channel0,0);
+    digitalWrite(12,0);
+    digitalWrite(14,0);
+    ledcWrite(MOTOR_CHANNEL_0,0);
 
   }
     
@@ -374,6 +284,6 @@ void loop()
   // steering.write(servo_wip)
   ;
   // steering.write(90);
-  ledcWrite(2,servo_wip);
+  ledcWrite(SERVO_CHANNEL_0,servo_wip);
 
 }
