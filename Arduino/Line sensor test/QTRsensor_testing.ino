@@ -21,12 +21,9 @@ unsigned long previousTime2=0;
 void SensorCalibrate(){
   // configure the sensors
   qtr.setTypeRC();
-  qtr.setSensorPins((const uint8_t[]){14,15,16,17,18,11,10,9,8,4}, 10);
-  qtr.setEmitterPin(2);
-
-  delay(500);
-  pinMode(13, OUTPUT);
-  digitalWrite(13, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
+  qtr.setSensorPins((const uint8_t[]){16, 17, 18, 19, 21, 25, 26, 27,32,33}, 10);
+  pinMode(2, OUTPUT);
+  digitalWrite(2, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
 
   // 2.5 ms RC read timeout (default) * 10 reads per calibrate() call
   // = ~25 ms per calibrate() call.
@@ -35,7 +32,7 @@ void SensorCalibrate(){
   {
     qtr.calibrate();
   }
-  digitalWrite(13, LOW); // turn off Arduino's LED to indicate we are through with calibration
+  digitalWrite(2, LOW); // turn off Arduino's LED to indicate we are through with calibration
 
   // print the calibration minimum values measured when emitters were on
   for (uint8_t i = 0; i < SensorCount; i++)
@@ -94,12 +91,11 @@ void SensorCalibrate1(){
 void SensorCalibrate2(){
   // configure the sensors
   qtr2.setTypeRC();
-  qtr2.setSensorPins((const uint8_t[]){11,10,9,8,4}, SensorCount);
-  qtr2.setEmitterPin(2);
+  qtr2.setSensorPins((const uint8_t[]){16, 17, 18, 19, 21, 25, 26, 27,32,33}, SensorCount);
 
   delay(500);
-  pinMode(13, OUTPUT);
-  digitalWrite(13, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
+  pinMode(2, OUTPUT);
+  digitalWrite(2, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
 
   // 2.5 ms RC read timeout (default) * 10 reads per calibrate() call
   // = ~25 ms per calibrate() call.
@@ -108,7 +104,7 @@ void SensorCalibrate2(){
   {
     qtr2.calibrate();
   }
-  digitalWrite(13, LOW); // turn off Arduino's LED to indicate we are through with calibration
+  digitalWrite(2, LOW); // turn off Arduino's LED to indicate we are through with calibration
 
   // print the calibration minimum values measured when emitters were on
   for (uint8_t i = 0; i < SensorCount; i++)
@@ -134,9 +130,9 @@ void SensorCalibrate2(){
 void setup()
 {
   Serial.begin(115200);
-  SensorCalibrate1();
+  // SensorCalibrate1();
   // SensorCalibrate2();
-  
+  SensorCalibrate();
 }
 
 void loop()
