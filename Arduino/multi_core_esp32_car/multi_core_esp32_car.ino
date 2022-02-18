@@ -1,14 +1,21 @@
+// Khai báo task
 TaskHandle_t Task1;
 TaskHandle_t Task2;
 
-
+// Semaphore để share data
 SemaphoreHandle_t baton;
 
+// WIFI LIBRARY
 #include "FirebaseESP32.h"
 #include <WiFi.h>
 #include <QTRSensors.h>
+#include "esp_task_wdt.h"
 
+
+// ID CAR
 String id_car="car_2";
+
+
 QTRSensors qtr;
 float kp=0;
 float ki=0;
@@ -32,9 +39,9 @@ boolean motor_toggle=false;
 #define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
 
 // WIFI_SSID: Tên WIFI
-#define WIFI_SSID "ABCDEFGH"
+#define WIFI_SSID "SCTV-CAM07"
 // WIFI_PASSWORD: Tên pass của WIFI
-#define WIFI_PASSWORD "abcdefgh"
+#define WIFI_PASSWORD "1234567899"
 
 // SERVO CONFIG
 #define SERVO_CHANNEL_0     0
@@ -51,7 +58,9 @@ boolean motor_toggle=false;
 
 FirebaseData db;
 FirebaseJson json;
-
+FirebaseJsonData result;
+FirebaseJsonArray arr;
+String jsonValues[6];
 
 void SensorCalibrate(){
   // configure the sensors
@@ -88,70 +97,87 @@ void SensorCalibrate(){
   delay(1000);
 }
 
+void readJSONFromDB(){
+    json.get(result, "/IDs/car_2");
+    result.get<FirebaseJsonArray>(arr);
+    for (size_t i = 0; i < arr.size(); i++)
+    {
+        arr.get(result, i);
+        jsonValues[i]=result.to<String>();
+    }
+    kp=jsonValues[3].toFloat();
+    ki=jsonValues[1].toFloat();
+    kd=jsonValues[0].toFloat();
+    motor_speed=jsonValues[2].toInt();
+    servo_wip=jsonValues[4].toInt();
+    arr.get(result, 5);
+    motor_toggle=result.to<bool>();
+}
 
 void readFromDB(){
     if (Firebase.getString(db,"IDs/"+id_car+"/P")){
-        if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
         String dp_kp=db.to<String>();
         kp=dp_kp.toFloat();
-        }
+      }
     } else {
-        Serial.println(db.errorReason());
+      Serial.println(db.errorReason());
     }
 
     if (Firebase.getString(db,"/IDs/"+id_car+"/D")){
-        if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
         String dp_kd=db.to<String>();
         kd=dp_kd.toFloat();
-        }
+      }
     } else {
-        Serial.println(db.errorReason());
+      Serial.println(db.errorReason());
     }
 
     if (Firebase.getString(db,"/IDs/"+id_car+"/I")){
-        if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
         String dp_ki=db.to<String>();
         ki=dp_ki.toFloat();
-        }
+      }
     } else {
-        Serial.println(db.errorReason());
+      Serial.println(db.errorReason());
     }
 
     if (Firebase.getString(db,"/IDs/"+id_car+"/Motor")){
-        if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
         String db_motor_speed=db.to<String>();
         motor_speed=db_motor_speed.toInt();
-        }
+      }
     } else {
-        Serial.println(db.errorReason());
+      Serial.println(db.errorReason());
     }
-
+    
     if (Firebase.getString(db,"/IDs/"+id_car+"/Servo")){
-        if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
         String db_servo_wip=db.to<String>();
         servo_wip=db_servo_wip.toInt();
-        }
+      }
     } else {
-        Serial.println(db.errorReason());
+      Serial.println(db.errorReason());
     }
 
     if (Firebase.getBool(db,"/IDs/"+id_car+"/Toggle")){
-        if (db.dataTypeEnum()== fb_esp_rtdb_data_type_boolean){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_boolean){
         motor_toggle=db.to<bool>();
-        }
+      }
     } else {
-        Serial.println(db.errorReason());
+      Serial.println(db.errorReason());
     }
 }
 
 // core 0 for calling api
 void WifiTask( void * pvParameters ){
   for(;;){
-    long start =millis();
+    // long start =millis();
     xSemaphoreTake(baton,portMAX_DELAY);
-    xSemaphoreGive(baton);
     readFromDB();
-    Serial.println("TASKWIFI Speed: " + String(millis()-start));
+    xSemaphoreGive(baton);
+    delay(1);
+    // Serial.println("TASKWIFI Speed: " + String(millis()-start));
     vTaskDelay(1000);
   } 
 }
@@ -164,6 +190,7 @@ void MainTask( void * pvParameters ){
     xSemaphoreTake(baton,portMAX_DELAY);
     xSemaphoreGive(baton);
 
+    // Drive motor
     if (motor_toggle==true){
         digitalWrite(MOTOR_PIN_1,1);
         digitalWrite(MOTOR_PIN_2,0);
@@ -173,13 +200,17 @@ void MainTask( void * pvParameters ){
         digitalWrite(MOTOR_PIN_2,0);
         ledcWrite(MOTOR_CHANNEL_0,0);
     }
-
-    ledcWrite(SERVO_CHANNEL_0,servo_wip);
-
     position = qtr.readLineBlack(sensorValues);
-    // error=position2-position;
-    // pid_output = kp*error + kd*(error - previouserror);
-    // previouserror = error;
+    // Note: xem lại phần error sao cho nó phù hợp dựa trên position nha
+
+    error=6969-position;
+    pid_output = kp*error + kd*(error - previouserror);
+    previouserror = error;
+
+    // Drive SERVO DEFAULT
+    ledcWrite(SERVO_CHANNEL_0,servo_wip);
+    // khi có SERVO WITH PID
+    // ledcWrite(SERVO_CHANNEL_0,servo_wip-pid_output);
 
     Serial.println("P: "+String(kp)+" D: "+String(kd)+" I: "+String(ki)+" Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle)+" Position: "+String(position));
     // Serial.println("TASK1 Speed: " + String(millis()-start));
@@ -221,7 +252,12 @@ void setup(){
     // SEMAPHORE để share data
     baton = xSemaphoreCreateMutex();
 
-    //TASK WIFI (NOTE: PRIOPRITY MUST BE 0 OTHERWISE WATCHDOG WILL NOT CATCH UP)
+    // Disable Watch dog timer debugger (vì nó sẽ reboot nếu mạng gặp trục trặc)
+    disableCore0WDT();
+    disableCore1WDT();
+    disableLoopWDT();
+
+    //TASK WIFI
     xTaskCreatePinnedToCore(
                     WifiTask,   /* Task function. */
                     "Task1",     /* name of task. */
@@ -231,20 +267,21 @@ void setup(){
                     &Task1,      /* Task handle to keep track of created task */
                     0);          /* pin task to core 0 */                  
     delay(500); 
-
-    //TASK 1 with PRIOR 1
+    
+    //TASK 1
     xTaskCreatePinnedToCore(
                     MainTask,   /* Task function. */
                     "Task2",     /* name of task. */
                     10000,       /* Stack size of task */
                     NULL,        /* parameter of the task */
-                    1,           /* priority of the task */
+                    configMAX_PRIORITIES,           /* priority of the task */
                     &Task2,      /* Task handle to keep track of created task */
                     1);          /* pin task to core 1 */
     delay(500); 
 }
 
+// DONT USE THIS
 void loop(){
-    delay(2000);
+    vTaskDelete(NULL);
     // NOTHING HERE
 }
