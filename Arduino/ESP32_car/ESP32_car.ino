@@ -34,9 +34,9 @@ unsigned long previousTime2=0;
 #define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
 
 // WIFI_SSID: Tên WIFI
-#define WIFI_SSID "SCTV-CAM07"
+#define WIFI_SSID "SS A20 FREE"
 // WIFI_PASSWORD: Tên pass của WIFI
-#define WIFI_PASSWORD "1234567899"
+#define WIFI_PASSWORD "19781902Cfc"
 
 // SERVO CONFIG
 #define SERVO_CHANNEL_0     0
@@ -219,6 +219,10 @@ void setup()
   ledcSetup(SERVO_CHANNEL_0, SERVO_BASE_FREQ, SERVO_TIMER_13_BIT);
   ledcAttachPin(SERVO_PIN, SERVO_CHANNEL_0);
   
+  pinMode(16, OUTPUT);
+  pinMode(17, OUTPUT);
+  digitalWrite(16, 1);
+  digitalWrite(17, 0);
 
   Serial.begin(115200);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -240,50 +244,73 @@ void setup()
   // SensorCalibrate();
   // pidConfig(0.1,0,0); //0.02 0 0.01
 }
+
+
+int servo_value = 255;
+int i=1;
+int motor_value = 0;
+int j=5;
+
 void loop()
 {
   // Đọc inputs từ Firebase
-  readFromDB();
+  // readFromDB(); 
+  // ton thoi gian xu li
 
   // Motor
   // Note: 
   // Toggle GPIO: 12; GPIO:14
   // Speed: GPIO: 13
-  if (motor_toggle==true){
-    digitalWrite(12,1);
-    digitalWrite(14,0);
-    ledcWrite(MOTOR_CHANNEL_0,motor_speed);
-  } else{
-    digitalWrite(12,0);
-    digitalWrite(14,0);
-    ledcWrite(MOTOR_CHANNEL_0,0);
 
-  }
+  // if (motor_toggle==true){
+  //   digitalWrite(12,1);
+  //   digitalWrite(14,0);
+  //   ledcWrite(MOTOR_CHANNEL_0,motor_speed);
+  // } else{
+  //   digitalWrite(12,0);
+  //   digitalWrite(14,0);
+  //   ledcWrite(MOTOR_CHANNEL_0,0);
+  // }
     
   // position = qtr.readLineBlack(sensorValues);
   // position2= 4000-qtr2.readLineBlack(sensorValues2);
 
   // Print values from db
-  Serial.println("P: "+String(kp)+" D: "+String(kd)+" I: "+String(ki)+" Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle));
+  // Serial.println("P: "+String(kp)+" D: "+String(kd)+" I: "+String(ki)+" Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle));
   
-  newPIDConfig.setConfig(kp,ki,kd);
+  // newPIDConfig.setConfig(kp,ki,kd);
 
-  error=position2-position;
-  pid_output = kp*error + kd*(error - previouserror);
-  previouserror = error;
+  // error=position2-position;
+  // pid_output = kp*error + kd*(error - previouserror);
+  // previouserror = error;
 
   // Send PID outputs to DB
-  if (millis()-previousTime2>=50){
-    Firebase.setInt(db,"IDs/"+id_car+"/PID_outputs",120);
-    previousTime2=millis();
-  }
+  // if (millis()-previousTime2>=50){
+  //   Firebase.setInt(db,"IDs/"+id_car+"/PID_outputs",120);
+  //   previousTime2=millis();
+  // }
+
+
+  // Firebase.setInt(db,"IDs/"+id_car+"/PID_outputs",120);
 
   // if (angleturn>40) pid_output=40;
   // if (angleturn<-30) pid_output=-30;
   // steering.write(90-pid_output);
-  // steering.write(servo_wip)
-  ;
+  // steering.write(servo_wip);
   // steering.write(90);
-  ledcWrite(SERVO_CHANNEL_0,servo_wip);
+  // ledcWrite(SERVO_CHANNEL_0,servo_wip);
 
+  
+  ledcWrite(SERVO_CHANNEL_0, servo_value);
+  servo_value = servo_value + i;
+  if ( servo_value >= 800 || servo_value <= 255){
+    i= -i;
+  }
+
+  ledcWrite(MOTOR_CHANNEL_0, motor_value);
+  motor_value = motor_value + j;
+  if ( motor_value >= 8191 || motor_value <= 0){
+    j= -j;
+  }
+  
 }

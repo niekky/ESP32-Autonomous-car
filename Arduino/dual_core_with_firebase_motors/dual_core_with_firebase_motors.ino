@@ -1,6 +1,6 @@
 TaskHandle_t Task1;
 TaskHandle_t Task2;
-TaskHandle_t Task3;
+// TaskHandle_t Task3;
 
 SemaphoreHandle_t baton;
 
@@ -24,9 +24,9 @@ boolean motor_toggle=false;
 #define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
 
 // WIFI_SSID: Tên WIFI
-#define WIFI_SSID "SS A20 FREE"
+#define WIFI_SSID "ABCDEFGH"
 // WIFI_PASSWORD: Tên pass của WIFI
-#define WIFI_PASSWORD "19781902Cfc"
+#define WIFI_PASSWORD "abcdefgh"
 
 // SERVO CONFIG
 #define SERVO_CHANNEL_0     0
@@ -38,6 +38,12 @@ boolean motor_toggle=false;
 #define MOTOR_TIMER_13_BIT  13
 #define MOTOR_BASE_FREQ     8000
 #define MOTOR_PIN           14
+
+int servo_value = 255;
+int i=1;
+int motor_value = 0;
+int j=5;
+
 
 FirebaseData db;
 FirebaseJson json;
@@ -116,16 +122,19 @@ void Task2code( void * pvParameters ){
     
     xSemaphoreTake(baton,portMAX_DELAY);
     xSemaphoreGive(baton);
-    
-    for (int i=0;i<255;i++){
-        ledcWrite(0,i);
-        delay(1);
+
+    ledcWrite(MOTOR_CHANNEL_0, motor_value);
+    motor_value = motor_value + j*15;
+    if ( motor_value >= 8191 || motor_value <= 0){
+        j= -j;
     }
 
-    for (int i=255;i>0;i--){
-        ledcWrite(0,i);
-        delay(1);
+    ledcWrite(SERVO_CHANNEL_0, servo_value);
+    servo_value = servo_value + i*15;
+    if ( servo_value >= 800 || servo_value <= 255){
+        i= -i;
     }
+
 
     Serial.println("P: "+String(kp)+" D: "+String(kd)+" I: "+String(ki)+" Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle));
     Serial.println("TASK1 Speed: " + String(millis()-start));
@@ -141,14 +150,10 @@ void Task3code( void * pvParameters ){
     xSemaphoreTake(baton,portMAX_DELAY);
     xSemaphoreGive(baton);
     
-    for (int i=0;i<255;i++){
-        ledcWrite(1,i);
-        delay(5);
-    }
-
-    for (int i=255;i>0;i--){
-        ledcWrite(1,i);
-        delay(5);
+    ledcWrite(SERVO_CHANNEL_0, servo_value);
+    servo_value = servo_value + i;
+    if ( servo_value >= 800 || servo_value <= 255){
+        i= -i;
     }
 
     Serial.println("TASK2 Speed: " + String(millis()-start));
@@ -157,15 +162,15 @@ void Task3code( void * pvParameters ){
 
 
 void setup(){
-    // pinMode(12, OUTPUT);
-    // pinMode(14, OUTPUT);
-
-    // LED 1 PWM
-    ledcSetup(0,5000,8);
-    ledcAttachPin(14,0);
-    // LED 2 PWM
-    ledcSetup(1,5000,8);
-    ledcAttachPin(12,1);
+    pinMode(17, OUTPUT);
+    pinMode(16, OUTPUT);
+    digitalWrite(17,1);
+    digitalWrite(16,0);
+    ledcSetup(MOTOR_CHANNEL_0, MOTOR_BASE_FREQ, MOTOR_TIMER_13_BIT);
+    ledcAttachPin(MOTOR_PIN, MOTOR_CHANNEL_0);
+    
+    ledcSetup(SERVO_CHANNEL_0, SERVO_BASE_FREQ, SERVO_TIMER_13_BIT);
+    ledcAttachPin(SERVO_PIN, SERVO_CHANNEL_0);
 
     Serial.begin(115200);
 
@@ -195,7 +200,7 @@ void setup(){
                     "Task1",     /* name of task. */
                     10000,       /* Stack size of task */
                     NULL,        /* parameter of the task */
-                    0,           /* priority of the task */
+                    20,           /* priority of the task */
                     &Task1,      /* Task handle to keep track of created task */
                     0);          /* pin task to core 0 */                  
     delay(500); 
@@ -212,15 +217,15 @@ void setup(){
     delay(500); 
 
     //TASK 2 with PRIOR 1
-    xTaskCreatePinnedToCore(
-                    Task3code,   /* Task function. */
-                    "Task3",     /* name of task. */
-                    10000,       /* Stack size of task */
-                    NULL,        /* parameter of the task */
-                    1,           /* priority of the task */
-                    &Task3,      /* Task handle to keep track of created task */
-                    1);          /* pin task to core 1 */
-    delay(500);
+    // xTaskCreatePinnedToCore(
+    //                 Task3code,   /* Task function. */
+    //                 "Task3",     /* name of task. */
+    //                 10000,       /* Stack size of task */
+    //                 NULL,        /* parameter of the task */
+    //                 1,           /* priority of the task */
+    //                 &Task3,      /* Task handle to keep track of created task */
+    //                 1);          /* pin task to core 1 */
+    // delay(500);
 }
 
 void loop(){
