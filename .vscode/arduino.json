@@ -2,5 +2,5 @@
     "configuration": "FlashFreq=80,UploadSpeed=921600",
     "board": "esp32:esp32:nodemcu-32s",
     "port": "COM3",
-    "sketch": "Arduino\\Line sensor test\\QTRsensor_testing.ino"
+    "sketch": "Arduino\\multi_core_esp32_car\\multi_core_esp32_car.ino"
 }
