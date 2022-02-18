@@ -24,6 +24,8 @@ float previous_error = 0, previous_I = 0;
 const uint8_t SensorCount = 10;
 uint16_t sensorValues[SensorCount];
 
+string jsonValues[6];
+
 
 unsigned long previousTime=0;
 unsigned long previousTime2=0;
@@ -51,6 +53,8 @@ unsigned long previousTime2=0;
 
 FirebaseData db;
 FirebaseJson json;
+FirebaseJsonData result;
+FirebaseJsonArray arr;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -145,59 +149,20 @@ void valueChangeDetect(String value,String previous_value){
 
 void readFromDB(){
   if (millis()-previousTime>=100){
-    if (Firebase.getString(db,"IDs/"+id_car+"/P")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
-        String dp_kp=db.to<String>();
-        kp=dp_kp.toFloat();
-      }
-    } else {
-      Serial.println(db.errorReason());
+    json.get(result, "/IDs/car_2");
+    result.get<FirebaseJsonArray>(arr);
+    for (size_t i = 0; i < arr.size(); i++)
+    {
+        arr.get(result, i);
+        jsonValues[i]=result.to<String>();
     }
-
-    if (Firebase.getString(db,"/IDs/"+id_car+"/D")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
-        String dp_kd=db.to<String>();
-        kd=dp_kd.toFloat();
-      }
-    } else {
-      Serial.println(db.errorReason());
-    }
-
-    if (Firebase.getString(db,"/IDs/"+id_car+"/I")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
-        String dp_ki=db.to<String>();
-        ki=dp_ki.toFloat();
-      }
-    } else {
-      Serial.println(db.errorReason());
-    }
-
-    if (Firebase.getString(db,"/IDs/"+id_car+"/Motor")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
-        String db_motor_speed=db.to<String>();
-        motor_speed=db_motor_speed.toInt();
-      }
-    } else {
-      Serial.println(db.errorReason());
-    }
-    
-    if (Firebase.getString(db,"/IDs/"+id_car+"/Servo")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
-        String db_servo_wip=db.to<String>();
-        servo_wip=db_servo_wip.toInt();
-      }
-    } else {
-      Serial.println(db.errorReason());
-    }
-
-    if (Firebase.getBool(db,"/IDs/"+id_car+"/Toggle")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_boolean){
-        motor_toggle=db.to<bool>();
-      }
-    } else {
-      Serial.println(db.errorReason());
-    }
-
+    kp=jsonValues[3].toFloat();
+    ki=jsonValues[1].toFloat();
+    kd=jsonValues[0].toFloat();
+    motor_speed=jsonValues[2].toInt();
+    servo_wip=jsonValues[4].toInt();
+    arr.get(result, 5);
+    motor_toggle=result.to<bool>();
     previousTime=millis();
   }
 }
@@ -253,53 +218,6 @@ int j=5;
 
 void loop()
 {
-  // Đọc inputs từ Firebase
-  // readFromDB(); 
-  // ton thoi gian xu li
-
-  // Motor
-  // Note: 
-  // Toggle GPIO: 12; GPIO:14
-  // Speed: GPIO: 13
-
-  // if (motor_toggle==true){
-  //   digitalWrite(12,1);
-  //   digitalWrite(14,0);
-  //   ledcWrite(MOTOR_CHANNEL_0,motor_speed);
-  // } else{
-  //   digitalWrite(12,0);
-  //   digitalWrite(14,0);
-  //   ledcWrite(MOTOR_CHANNEL_0,0);
-  // }
-    
-  // position = qtr.readLineBlack(sensorValues);
-  // position2= 4000-qtr2.readLineBlack(sensorValues2);
-
-  // Print values from db
-  // Serial.println("P: "+String(kp)+" D: "+String(kd)+" I: "+String(ki)+" Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle));
-  
-  // newPIDConfig.setConfig(kp,ki,kd);
-
-  // error=position2-position;
-  // pid_output = kp*error + kd*(error - previouserror);
-  // previouserror = error;
-
-  // Send PID outputs to DB
-  // if (millis()-previousTime2>=50){
-  //   Firebase.setInt(db,"IDs/"+id_car+"/PID_outputs",120);
-  //   previousTime2=millis();
-  // }
-
-
-  // Firebase.setInt(db,"IDs/"+id_car+"/PID_outputs",120);
-
-  // if (angleturn>40) pid_output=40;
-  // if (angleturn<-30) pid_output=-30;
-  // steering.write(90-pid_output);
-  // steering.write(servo_wip);
-  // steering.write(90);
-  // ledcWrite(SERVO_CHANNEL_0,servo_wip);
-
   
   ledcWrite(SERVO_CHANNEL_0, servo_value);
   servo_value = servo_value + i;
