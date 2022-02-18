@@ -147,6 +147,16 @@ void valueChangeDetect(String value,String previous_value){
   }
 }
 
+void updateMotor(int motor_speed_update){
+  if (millis()-previousTime>=100){
+    while (motor_speed_update!=motor_speed){
+      if (motor_speed < motor_speed_update) motor_speed++;
+      else motor_speed--;
+    }
+    previousTime=millis();
+  }
+}
+
 void readFromDB(){
   if (millis()-previousTime>=100){
     json.get(result, "/IDs/car_2");
@@ -159,7 +169,7 @@ void readFromDB(){
     kp=jsonValues[3].toFloat();
     ki=jsonValues[1].toFloat();
     kd=jsonValues[0].toFloat();
-    motor_speed=jsonValues[2].toInt();
+    updateMotor(jsonValues[2].toInt());
     servo_wip=jsonValues[4].toInt();
     arr.get(result, 5);
     motor_toggle=result.to<bool>();
