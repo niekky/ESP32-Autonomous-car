@@ -10,7 +10,7 @@ SemaphoreHandle_t baton;
 #include <WiFi.h>
 #include <QTRSensors.h>
 #include "esp_task_wdt.h"
-
+#define FIREBASE_USE_PSRAM
 
 // ID CAR
 String id_car="car_2";
@@ -65,7 +65,7 @@ String jsonValues[6];
 void SensorCalibrate(){
   // configure the sensors
   qtr.setTypeRC();
-  qtr.setSensorPins((const uint8_t[]){16, 17, 18, 19, 21, 25, 26, 27,32,33}, 10);
+  qtr.setSensorPins((const uint8_t[]){21, 19, 18, 17, 16, 32, 33, 27,26,25}, 10);
   pinMode(2, OUTPUT);
   digitalWrite(2, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
 
@@ -178,7 +178,7 @@ void WifiTask( void * pvParameters ){
     xSemaphoreGive(baton);
     delay(1);
     // Serial.println("TASKWIFI Speed: " + String(millis()-start));
-    vTaskDelay(1000);
+    vTaskDelay(500);
   } 
 }
 
