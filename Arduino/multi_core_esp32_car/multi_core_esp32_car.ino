@@ -52,7 +52,7 @@ boolean motor_toggle=false;
 #define SERVO_PIN           5
 // MOTOR CONFIG
 #define MOTOR_CHANNEL_0     1
-#define MOTOR_TIMER_13_BIT  13
+#define MOTOR_TIMER_13_BIT  16
 #define MOTOR_BASE_FREQ     8000
 #define MOTOR_PIN_ENB       13
 #define MOTOR_PIN_1         12
@@ -216,7 +216,7 @@ void MainTask( void * pvParameters ){
     if (motor_toggle==true){
         digitalWrite(MOTOR_PIN_1,0);
         digitalWrite(MOTOR_PIN_2,1);
-        ledcWrite(MOTOR_CHANNEL_0,motor_speed);
+        ledcWrite(MOTOR_CHANNEL_0,8000);
     } else{
         digitalWrite(MOTOR_PIN_1,0);
         digitalWrite(MOTOR_PIN_2,0);
