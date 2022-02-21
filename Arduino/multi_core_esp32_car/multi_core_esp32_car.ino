@@ -39,9 +39,9 @@ boolean motor_toggle=false;
 #define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
 
 // WIFI_SSID: Tên WIFI
-#define WIFI_SSID "SCTV-CAM07"
+#define WIFI_SSID "Flap"
 // WIFI_PASSWORD: Tên pass của WIFI
-#define WIFI_PASSWORD "1234567899"
+#define WIFI_PASSWORD "1812flapflapfoo"
 
 // SERVO CONFIG
 #define SERVO_CHANNEL_0     0
@@ -192,8 +192,8 @@ void MainTask( void * pvParameters ){
 
     // Drive motor
     if (motor_toggle==true){
-        digitalWrite(MOTOR_PIN_1,1);
-        digitalWrite(MOTOR_PIN_2,0);
+        digitalWrite(MOTOR_PIN_1,0);
+        digitalWrite(MOTOR_PIN_2,1);
         ledcWrite(MOTOR_CHANNEL_0,motor_speed);
     } else{
         digitalWrite(MOTOR_PIN_1,0);
@@ -203,14 +203,15 @@ void MainTask( void * pvParameters ){
     position = qtr.readLineBlack(sensorValues);
     // Note: xem lại phần error sao cho nó phù hợp dựa trên position nha
 
-    error=6969-position;
+    error=3300
+    -position;
     pid_output = kp*error + kd*(error - previouserror);
     previouserror = error;
 
     // Drive SERVO DEFAULT
-    ledcWrite(SERVO_CHANNEL_0,servo_wip);
+    //ledcWrite(SERVO_CHANNEL_0,servo_wip);
     // khi có SERVO WITH PID
-    // ledcWrite(SERVO_CHANNEL_0,servo_wip-pid_output);
+    ledcWrite(SERVO_CHANNEL_0,max(255,min(800,servo_wip+pid_output)));
 
     Serial.println("P: "+String(kp)+" D: "+String(kd)+" I: "+String(ki)+" Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle)+" Position: "+String(position));
     // Serial.println("TASK1 Speed: " + String(millis()-start));
