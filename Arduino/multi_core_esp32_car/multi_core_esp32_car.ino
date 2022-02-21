@@ -1,6 +1,8 @@
 // Khai báo task
 TaskHandle_t Task1;
 TaskHandle_t Task2;
+TaskHandle_t Task3;
+
 
 // Semaphore để share data
 SemaphoreHandle_t baton;
@@ -39,13 +41,13 @@ boolean motor_toggle=false;
 #define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
 
 // WIFI_SSID: Tên WIFI
-#define WIFI_SSID "Flap"
+#define WIFI_SSID "SCTV-CAM07"
 // WIFI_PASSWORD: Tên pass của WIFI
-#define WIFI_PASSWORD "1812flapflapfoo"
+#define WIFI_PASSWORD "1234567899"
 
 // SERVO CONFIG
 #define SERVO_CHANNEL_0     0
-#define SERVO_TIMER_13_BIT  13
+#define SERVO_TIMER_16_BIT  16
 #define SERVO_BASE_FREQ     50
 #define SERVO_PIN           5
 // MOTOR CONFIG
@@ -114,6 +116,26 @@ void readJSONFromDB(){
     motor_toggle=result.to<bool>();
 }
 
+void SetServoPos(float pos)
+{
+    uint32_t duty = (((pos/180.0)
+              *2000)/20000.0*65536.0) + 1634;
+         // convert 0-180 degrees to 0-65536
+
+    ledcWrite(SERVO_CHANNEL_0,duty);
+        // set channel to pos
+}
+
+void ServoTesting(){
+    for(int x=0;x<130;x++)
+   {
+      SetServoPos(x);
+      delay(10);
+   }
+   delay(100);
+   
+}
+
 void readFromDB(){
     if (Firebase.getString(db,"IDs/"+id_car+"/P")){
       if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
@@ -174,8 +196,8 @@ void WifiTask( void * pvParameters ){
   for(;;){
     // long start =millis();
     xSemaphoreTake(baton,portMAX_DELAY);
-    readFromDB();
     xSemaphoreGive(baton);
+    readFromDB();
     delay(1);
     // Serial.println("TASKWIFI Speed: " + String(millis()-start));
     vTaskDelay(500);
@@ -185,7 +207,7 @@ void WifiTask( void * pvParameters ){
 // core 1 task1 for main function
 void MainTask( void * pvParameters ){
   for(;;){
-    // long start =millis();
+    long start =millis();
     
     xSemaphoreTake(baton,portMAX_DELAY);
     xSemaphoreGive(baton);
@@ -203,18 +225,17 @@ void MainTask( void * pvParameters ){
     position = qtr.readLineBlack(sensorValues);
     // Note: xem lại phần error sao cho nó phù hợp dựa trên position nha
 
-    error=3300
-    -position;
+    error=3300-position;
     pid_output = kp*error + kd*(error - previouserror);
     previouserror = error;
 
     // Drive SERVO DEFAULT
-    //ledcWrite(SERVO_CHANNEL_0,servo_wip);
+    SetServoPos(servo_wip);
     // khi có SERVO WITH PID
-    ledcWrite(SERVO_CHANNEL_0,max(255,min(800,servo_wip+pid_output)));
-
+    // ledcWrite(SERVO_CHANNEL_0,max(255,min(800,servo_wip+pid_output)));
+    // ServoTesting();
     Serial.println("P: "+String(kp)+" D: "+String(kd)+" I: "+String(ki)+" Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle)+" Position: "+String(position));
-    // Serial.println("TASK1 Speed: " + String(millis()-start));
+    Serial.println("TASK1 Speed: " + String(millis()-start));
   }
 }
 
@@ -225,7 +246,7 @@ void setup(){
     ledcSetup(MOTOR_CHANNEL_0, MOTOR_BASE_FREQ, MOTOR_TIMER_13_BIT);
     ledcAttachPin(MOTOR_PIN_ENB, MOTOR_CHANNEL_0);
     
-    ledcSetup(SERVO_CHANNEL_0, SERVO_BASE_FREQ, SERVO_TIMER_13_BIT);
+    ledcSetup(SERVO_CHANNEL_0, SERVO_BASE_FREQ, SERVO_TIMER_16_BIT);
     ledcAttachPin(SERVO_PIN, SERVO_CHANNEL_0);
 
     Serial.begin(115200);
