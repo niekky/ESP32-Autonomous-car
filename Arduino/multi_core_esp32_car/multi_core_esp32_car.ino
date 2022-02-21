@@ -216,7 +216,7 @@ void MainTask( void * pvParameters ){
     if (motor_toggle==true){
         digitalWrite(MOTOR_PIN_1,0);
         digitalWrite(MOTOR_PIN_2,1);
-        ledcWrite(MOTOR_CHANNEL_0,8000);
+        ledcWrite(MOTOR_CHANNEL_0,motor_speed);
     } else{
         digitalWrite(MOTOR_PIN_1,0);
         digitalWrite(MOTOR_PIN_2,0);
