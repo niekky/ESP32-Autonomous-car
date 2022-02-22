@@ -14,10 +14,8 @@ SemaphoreHandle_t baton;
 #include "esp_task_wdt.h"
 #define FIREBASE_USE_PSRAM
 
-// // ID CAREFUL DRIVING
-// String id_car="car_2";
-// // ID RACING
-String id_car="car_1";
+// ID CAR
+String id_car="car_2";
 
 
 QTRSensors qtr;
@@ -43,9 +41,9 @@ boolean motor_toggle=false;
 #define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
 
 // WIFI_SSID: Tên WIFI
-#define WIFI_SSID "ABCDEFGH"
+#define WIFI_SSID "Flap"
 // WIFI_PASSWORD: Tên pass của WIFI
-#define WIFI_PASSWORD "abcdefgh"
+#define WIFI_PASSWORD "1812flapflapfoo"
 
 // SERVO CONFIG
 #define SERVO_CHANNEL_0     0
@@ -129,7 +127,7 @@ void SetServoPos(float pos)
 }
 
 void ServoTesting(){
-    for(int x=0;x<130;x++)
+    for(int x=0;x<100;x++)
    {
       SetServoPos(x);
       delay(10);
@@ -226,18 +224,16 @@ void MainTask( void * pvParameters ){
     }
     position = qtr.readLineBlack(sensorValues);
     // Note: xem lại phần error sao cho nó phù hợp dựa trên position nha
-
-    error=4200-position;
+  
+    error=3800-position;
     pid_output = kp*error + kd*(error - previouserror);
     previouserror = error;
 
     // Drive SERVO DEFAULT
-    // SetServoPos(servo_wip);
+    SetServoPos(max(0,min(130,servo_wip+pid_output)));
     // khi có SERVO WITH PID
     // ledcWrite(SERVO_CHANNEL_0,max(255,min(800,servo_wip+pid_output)));
-    SetServoPos(max(0,min(130,servo_wip+pid_output)));
-
-    // ServoTesting();
+    //ServoTesting();
     Serial.println("P: "+String(kp)+" D: "+String(kd)+" I: "+String(ki)+" Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle)+" Position: "+String(position));
     Serial.println("TASK1 Speed: " + String(millis()-start));
   }
