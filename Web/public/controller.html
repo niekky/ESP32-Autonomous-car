@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <link rel="stylesheet" href="controll_style.css">
+    <!-- <link rel="stylesheet" href="controll_style.css"> -->
     <title>carController</title>
     <!-- <link rel="stylesheet" href="style.css"> -->
   </head>
@@ -17,11 +17,25 @@
         </header>
         <main>
           <section class="form__group field">
-            <input type="number" id="P_value" class="P_value" name="P_value" placeholder="P VALUE">
-            <input type="number" id="I_value" class="I_value" name="I_value" placeholder="I VALUE">
-            <input type="number" id="D_value" class="D_value" name="D_value" placeholder="D VALUE">
+            <h1 class="servo_pid_name" >Servo PID</h1>
+            <label class="form__label">P:</label>
+            <input type="number" id="P_servo_value" class="P_servo_value" name="P_servo_value" placeholder="P VALUE">
+            <label class="form__label">I:</label>
+            <input type="number" id="I_servo_value" class="I_servo_value" name="I_servo_value" placeholder="I VALUE">
+            <label class="form__label">D:</label>
+            <input type="number" id="D_servo_value" class="D_servo_value" name="D_servo_value" placeholder="D VALUE">
           </section>
           <section class="form__group field">
+            <h1 class="motor_pid_name" >Motor PID</h1>
+            <label class="form__label">P:</label>
+            <input type="number" id="P_motor_value" class="P_motor_value" name="P_motor_value" placeholder="P VALUE">
+            <label class="form__label">I:</label>
+            <input type="number" id="I_motor_value" class="I_motor_value" name="I_motor_value" placeholder="I VALUE">
+            <label class="form__label">D:</label>
+            <input type="number" id="D_motor_value" class="D_motor_value" name="D_motor_value" placeholder="D VALUE">
+          </section>
+          <section class="form__group field">
+            <h1 class="motor_pid_name" >Motor Config</h1>
             <label class="form__label">Motor: </label>
             <input type="number" class="Motor_value" value="0" min="0" class="form_field">
             <label class="form__label">Servo: </label>

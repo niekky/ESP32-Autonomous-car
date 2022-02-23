@@ -1,5 +1,6 @@
 {
+    "configuration": "FlashFreq=80,UploadSpeed=921600",
     "board": "esp32:esp32:nodemcu-32s",
-    "port": "COM3",
-    "sketch": "Arduino\\multi_core_esp32_car\\multi_core_esp32_car.ino"
+    "sketch": "Arduino\\HTTPStreaming\\HTTPStreaming_test.ino",
+    "port": "COM3"
 }

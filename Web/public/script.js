@@ -52,25 +52,34 @@ get(child(dbRef,"IDs/"+car_id)).then((snapshot) => {
     if (snapshot.exists()){
         try{
             const values_obj=snapshot.val();
-            document.querySelector(".P_value").value=values_obj["P"].toString();
-            document.querySelector(".I_value").value=values_obj["I"].toString();
-            document.querySelector(".D_value").value=values_obj["D"].toString();
-            document.querySelector(".Motor_value").value=values_obj["Motor"].toString();
-            document.querySelector(".Servo_value").value=values_obj["Servo"].toString();
+            document.querySelector(".P_servo_value").value=values_obj["P_servo"].toString();
+            document.querySelector(".I_servo_value").value=values_obj["I_servo"].toString();
+            document.querySelector(".D_servo_value").value=values_obj["D_servo"].toString();
+            document.querySelector(".P_motor_value").value=values_obj["P_motor"].toString();
+            document.querySelector(".I_motor_value").value=values_obj["I_motor"].toString();
+            document.querySelector(".D_motor_value").value=values_obj["D_motor"].toString();
+            document.querySelector(".Motor_value").value=values_obj["Motor"]
+            document.querySelector(".Servo_value").value=values_obj["Servo"]
         } catch(err) {
-            document.querySelector(".P_value").value="0"
-            document.querySelector(".I_value").value="0"
-            document.querySelector(".D_value").value="0"
-            document.querySelector(".Motor_value").value="0"
-            document.querySelector(".Servo_value").value="0"
+            document.querySelector(".P_servo_value").value="0";
+            document.querySelector(".I_servo_value").value="0";
+            document.querySelector(".D_servo_value").value="0";
+            document.querySelector(".P_motor_value").value="0";
+            document.querySelector(".I_motor_value").value="0";
+            document.querySelector(".D_motor_value").value="0";
+            document.querySelector(".Motor_value").value=0;
+            document.querySelector(".Servo_value").value=0;
         }
     } else{
         console.log("Snapshot not available");
-        document.querySelector(".P_value").value="0"
-        document.querySelector(".I_value").value="0"
-        document.querySelector(".D_value").value="0"
-        document.querySelector(".Motor_value").value="0"
-        document.querySelector(".Servo_value").value="0"
+        document.querySelector(".P_servo_value").value="0";
+        document.querySelector(".I_servo_value").value="0";
+        document.querySelector(".D_servo_value").value="0";
+        document.querySelector(".P_motor_value").value="0";
+        document.querySelector(".I_motor_value").value="0";
+        document.querySelector(".D_motor_value").value="0";
+        document.querySelector(".Motor_value").value=0;
+        document.querySelector(".Servo_value").value=0;
     }
   }).catch((error) => {
     console.error(error);
@@ -79,19 +88,26 @@ get(child(dbRef,"IDs/"+car_id)).then((snapshot) => {
 
 // P,I,D,Motor,Servo inputs
 document.querySelector(".enter").addEventListener("click", function(){
-    var P_value=document.querySelector(".P_value").value;
-    var I_value=document.querySelector(".I_value").value;
-    var D_value=document.querySelector(".D_value").value;
+    var P_servo_value=document.querySelector(".P_servo_value").value;
+    var I_servo_value=document.querySelector(".I_servo_value").value;
+    var D_servo_value=document.querySelector(".D_servo_value").value;
     var motor_value=document.querySelector(".Motor_value").value;
     var servo_value=document.querySelector(".Servo_value").value;
+    var P_motor_value=document.querySelector(".P_motor_value").value;
+    var I_motor_value=document.querySelector(".I_motor_value").value;
+    var D_motor_value=document.querySelector(".D_motor_value").value;
+
     // send values
-    if (P_value>=0 && I_value>=0 && D_value>=0 && motor_value>=0 && servo_value>=0){
+    if (P_servo_value>=0 && I_servo_value>=0 && D_servo_value>=0 && motor_value>=0 && servo_value>=0){
         set(ref(db, "IDs/"+car_id), {
-            P: P_value,
-            I: I_value,
-            D: D_value,
-            Motor: motor_value,
-            Servo: servo_value,
+            P_servo: parseFloat(P_servo_value),
+            I_servo: parseFloat(I_servo_value),
+            D_servo: parseFloat(D_servo_value),
+            P_motor: parseFloat(P_motor_value),
+            I_motor: parseFloat(I_motor_value),
+            D_motor: parseFloat(D_motor_value),
+            Motor: parseInt(motor_value,10),
+            Servo: parseInt(servo_value,10),
             Toggle: toggle
           });
     } else {
@@ -127,7 +143,7 @@ engine_status.addEventListener("click", function(){
           if (toggle==false){
             clearInterval(realtime);
           }
-        },20);
+        },500);
     }
     
 
@@ -137,9 +153,12 @@ engine_status.addEventListener("click", function(){
           const values_obj=snapshot.val();
           values_obj["Toggle"]=toggle;
           set(ref(db, "IDs/"+car_id), {
-            P: values_obj["P"],
-            I: values_obj["I"],
-            D: values_obj["D"],
+            P_servo: values_obj["P_servo"],
+            I_servo: values_obj["I_servo"],
+            D_servo: values_obj["D_servo"],
+            P_motor: values_obj["P_motor"],
+            I_motor: values_obj["I_motor"],
+            D_motor: values_obj["D_motor"],
             Motor: values_obj["Motor"],
             Servo: values_obj["Servo"],
             Toggle: values_obj["Toggle"]

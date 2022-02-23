@@ -29,9 +29,9 @@ const btn_back=document.querySelector(".back");
 const btn_auto=document.querySelector(".auto");
 
 
-// const app = initializeApp(firebaseConfig);
-// const db=getDatabase(app);
-// const dbRef=ref(db);
+const app = initializeApp(firebaseConfig);
+const db=getDatabase(app);
+const dbRef=ref(db);
 
 
 btn_red.addEventListener("click", function(){   
@@ -41,7 +41,7 @@ btn_red.addEventListener("click", function(){
 	const currentLight = circles[activeLight]
 	currentLight.classList.add(currentLight.getAttribute('color'));
 
-    set(ref(db, "trafic"), {
+    set(ref(db, "traffic"), {
         count: 0,
         light: "red",
         toggle: "red"
@@ -54,7 +54,7 @@ btn_yellow.addEventListener("click", function(){
 	const currentLight = circles[activeLight]
 	currentLight.classList.add(currentLight.getAttribute('color'));
 
-    set(ref(db, "trafic"), {
+    set(ref(db, "traffic"), {
         count: 0,
         light: "yellow",
         toggle: "yellow"
@@ -67,7 +67,7 @@ btn_green.addEventListener("click", function(){
 	const currentLight = circles[activeLight]
 	currentLight.classList.add(currentLight.getAttribute('color'));
 
-    set(ref(db, "trafic"), {
+    set(ref(db, "traffic"), {
         count: 0,
         light: "green",
         toggle: "green"
