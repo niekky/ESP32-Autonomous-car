@@ -14,14 +14,14 @@ SemaphoreHandle_t baton;
 #include "esp_task_wdt.h"
 #define FIREBASE_USE_PSRAM
 
+
 // ID CAR
 String id_car="car_2";
 
 
 QTRSensors qtr;
-float kp=0;
-float ki=0;
-float kd=0;
+float kp=0, ki=0, kd=0;
+float kp_motor=0, ki_motor=0, kd_motor=0;
 int pid_output=0;
 int servo_wip=90;
 int motor_speed=0;
@@ -30,6 +30,7 @@ int previouserror=0;
 uint16_t position=0;
 
 float previous_error = 0, previous_I = 0;
+float previous_error_motor=0, previous_I_motor=0;
 const uint8_t SensorCount = 10;
 uint16_t sensorValues[SensorCount];
 
@@ -41,9 +42,9 @@ boolean motor_toggle=false;
 #define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
 
 // WIFI_SSID: Tên WIFI
-#define WIFI_SSID "Flap"
+#define WIFI_SSID "SS A20 FREE"
 // WIFI_PASSWORD: Tên pass của WIFI
-#define WIFI_PASSWORD "1812flapflapfoo"
+#define WIFI_PASSWORD "19781902Cfc"
 
 // SERVO CONFIG
 #define SERVO_CHANNEL_0     0
@@ -67,7 +68,7 @@ String jsonValues[6];
 void SensorCalibrate(){
   // configure the sensors
   qtr.setTypeRC();
-  qtr.setSensorPins((const uint8_t[]){21, 19, 18, 17, 16, 32, 33, 27,26,25}, 10);
+  qtr.setSensorPins((const uint8_t[]){21, 19, 18, 17, 16, 32, 33, 25,26,27}, 10);
   pinMode(2, OUTPUT);
   digitalWrite(2, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
 
@@ -137,51 +138,62 @@ void ServoTesting(){
 }
 
 void readFromDB(){
-    if (Firebase.getString(db,"IDs/"+id_car+"/P")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
-        String dp_kp=db.to<String>();
-        kp=dp_kp.toFloat();
+    if (Firebase.getFloat(db,"IDs/"+id_car+"/P_servo")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
+        kp=db.to<float>();
       }
     } else {
       Serial.println(db.errorReason());
     }
-
-    if (Firebase.getString(db,"/IDs/"+id_car+"/D")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
-        String dp_kd=db.to<String>();
-        kd=dp_kd.toFloat();
+    if (Firebase.getFloat(db,"/IDs/"+id_car+"/D_servo")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
+        kd=db.to<float>();
       }
     } else {
       Serial.println(db.errorReason());
     }
-
-    if (Firebase.getString(db,"/IDs/"+id_car+"/I")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
-        String dp_ki=db.to<String>();
-        ki=dp_ki.toFloat();
+    if (Firebase.getFloat(db,"/IDs/"+id_car+"/I_servo")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
+        ki=db.to<float>();
       }
     } else {
       Serial.println(db.errorReason());
     }
-
-    if (Firebase.getString(db,"/IDs/"+id_car+"/Motor")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
-        String db_motor_speed=db.to<String>();
-        motor_speed=db_motor_speed.toInt();
+    if (Firebase.getFloat(db,"IDs/"+id_car+"/P_motor")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
+        kp_motor=db.to<float>();
       }
     } else {
       Serial.println(db.errorReason());
     }
-    
-    if (Firebase.getString(db,"/IDs/"+id_car+"/Servo")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
-        String db_servo_wip=db.to<String>();
-        servo_wip=db_servo_wip.toInt();
+    if (Firebase.getFloat(db,"/IDs/"+id_car+"/D_motor")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
+        kd_motor=db.to<float>();
       }
     } else {
       Serial.println(db.errorReason());
     }
-
+    if (Firebase.getFloat(db,"/IDs/"+id_car+"/I_float")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
+        ki_motor=db.to<float>();
+      }
+    } else {
+      Serial.println(db.errorReason());
+    }
+    if (Firebase.getInt(db,"/IDs/"+id_car+"/Motor")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_integer){
+        motor_speed=db.to<int>();
+      }
+    } else {
+      Serial.println(db.errorReason());
+    }
+    if (Firebase.getInt(db,"/IDs/"+id_car+"/Servo")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_integer){
+        servo_wip=db.to<int>();
+      }
+    } else {
+      Serial.println(db.errorReason());
+    }
     if (Firebase.getBool(db,"/IDs/"+id_car+"/Toggle")){
       if (db.dataTypeEnum()== fb_esp_rtdb_data_type_boolean){
         motor_toggle=db.to<bool>();
@@ -194,12 +206,12 @@ void readFromDB(){
 // core 0 for calling api
 void WifiTask( void * pvParameters ){
   for(;;){
-    // long start =millis();
+    long start =millis();
     xSemaphoreTake(baton,portMAX_DELAY);
     xSemaphoreGive(baton);
     readFromDB();
     delay(1);
-    // Serial.println("TASKWIFI Speed: " + String(millis()-start));
+    Serial.println("TASKWIFI Speed: " + String(millis()-start));
     vTaskDelay(500);
   } 
 }
@@ -230,15 +242,16 @@ void MainTask( void * pvParameters ){
     previouserror = error;
 
     // Drive SERVO DEFAULT
-    SetServoPos(max(0,min(130,servo_wip+pid_output)));
+    SetServoPos(max(0,min(130,servo_wip-pid_output)));
     // khi có SERVO WITH PID
     // ledcWrite(SERVO_CHANNEL_0,max(255,min(800,servo_wip+pid_output)));
     //ServoTesting();
-    Serial.println("P: "+String(kp)+" D: "+String(kd)+" I: "+String(ki)+" Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle)+" Position: "+String(position));
+    // Serial.println("P: "+String(kp)+" D: "+String(kd*10)+" I: "+String(ki));
+    // Serial.println("P_motor: "+String(kp_motor)+" D_motor: "+String(kd_motor)+" I_motor: "+String(ki_motor));
+    // Serial.println("Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle)+" Position: "+String(position));
     Serial.println("TASK1 Speed: " + String(millis()-start));
   }
 }
-
 
 void setup(){
     pinMode(MOTOR_PIN_1, OUTPUT);

@@ -137,51 +137,62 @@ void ServoTesting(){
 }
 
 void readFromDB(){
-    if (Firebase.getString(db,"IDs/"+id_car+"/P")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
-        String dp_kp=db.to<String>();
-        kp=dp_kp.toFloat();
+    if (Firebase.getFloat(db,"IDs/"+id_car+"/P_servo")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
+        kp=db.to<float>();
       }
     } else {
       Serial.println(db.errorReason());
     }
-
-    if (Firebase.getString(db,"/IDs/"+id_car+"/D")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
-        String dp_kd=db.to<String>();
-        kd=dp_kd.toFloat();
+    if (Firebase.getFloat(db,"/IDs/"+id_car+"/D_servo")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
+        kd=db.to<float>();
       }
     } else {
       Serial.println(db.errorReason());
     }
-
-    if (Firebase.getString(db,"/IDs/"+id_car+"/I")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
-        String dp_ki=db.to<String>();
-        ki=dp_ki.toFloat();
+    if (Firebase.getFloat(db,"/IDs/"+id_car+"/I_servo")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
+        ki=db.to<float>();
       }
     } else {
       Serial.println(db.errorReason());
     }
-
-    if (Firebase.getString(db,"/IDs/"+id_car+"/Motor")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
-        String db_motor_speed=db.to<String>();
-        motor_speed=db_motor_speed.toInt();
+    if (Firebase.getFloat(db,"IDs/"+id_car+"/P_motor")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
+        kp_motor=db.to<float>();
       }
     } else {
       Serial.println(db.errorReason());
     }
-    
-    if (Firebase.getString(db,"/IDs/"+id_car+"/Servo")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_string){
-        String db_servo_wip=db.to<String>();
-        servo_wip=db_servo_wip.toInt();
+    if (Firebase.getFloat(db,"/IDs/"+id_car+"/D_motor")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
+        kd_motor=db.to<float>();
       }
     } else {
       Serial.println(db.errorReason());
     }
-
+    if (Firebase.getFloat(db,"/IDs/"+id_car+"/I_float")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
+        ki_motor=db.to<float>();
+      }
+    } else {
+      Serial.println(db.errorReason());
+    }
+    if (Firebase.getInt(db,"/IDs/"+id_car+"/Motor")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_integer){
+        motor_speed=db.to<int>();
+      }
+    } else {
+      Serial.println(db.errorReason());
+    }
+    if (Firebase.getInt(db,"/IDs/"+id_car+"/Servo")){
+      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_integer){
+        servo_wip=db.to<int>();
+      }
+    } else {
+      Serial.println(db.errorReason());
+    }
     if (Firebase.getBool(db,"/IDs/"+id_car+"/Toggle")){
       if (db.dataTypeEnum()== fb_esp_rtdb_data_type_boolean){
         motor_toggle=db.to<bool>();
