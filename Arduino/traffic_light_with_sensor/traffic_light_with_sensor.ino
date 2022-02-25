@@ -1,6 +1,10 @@
+
+
 // Khai báo task
 TaskHandle_t Task1;
 TaskHandle_t Task2;
+TaskHandle_t Task3;
+
 
 // Semaphore để share data
 SemaphoreHandle_t baton;
@@ -8,19 +12,38 @@ SemaphoreHandle_t baton;
 #include "FirebaseESP32.h"
 #include <WiFi.h>
 #include "esp_task_wdt.h"
+#include <esp_now.h>
+
 #define FIREBASE_USE_PSRAM
 
 #define FIREBASE_HOST "https://nodemcu-a4907-default-rtdb.asia-southeast1.firebasedatabase.app" 
 #define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
 
-#define WIFI_SSID "Ku min"
-#define WIFI_PASSWORD "01658186379"
+#define WIFI_SSID "SS A20 FREE"
+#define WIFI_PASSWORD "19781902Cfc"
 
 #define red_pinout 12
 #define yellow_pinout 14
 #define green_pinout 27
 
 #include <Wire.h>
+
+// Structure example to send data
+// Must match the receiver structure
+typedef struct struct_message {
+  int b;
+  float c;
+  bool d;
+} struct_message;
+
+// Create a struct_message called myData
+struct_message myData;
+
+// callback when data is sent
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("\r\nLast Packet Send Status:\t");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
 
 unsigned char ok_flag;
 unsigned char fail_flag;
@@ -39,6 +62,37 @@ void setup()
   pinMode(red_pinout,OUTPUT);
   pinMode(yellow_pinout,OUTPUT);
   pinMode(green_pinout,OUTPUT);
+
+  // Set device as a Wi-Fi Station
+  WiFi.mode(WIFI_STA);
+
+  // Init ESP-NOW
+  // if (esp_now_init() != ESP_OK) {
+  //   Serial.println("Error initializing ESP-NOW");
+  //   return;
+  // }
+
+
+
+
+  
+
+  // // Once ESPNow is successfully Init, we will register for Send CB to
+  // // get the status of Trasnmitted packet
+  // esp_now_register_send_cb(OnDataSent);
+  
+  // // Register peer
+  // esp_now_peer_info_t peerInfo;
+  // memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+  // peerInfo.channel = 0;  
+  // peerInfo.encrypt = false;
+  
+  // // Add peer        
+  // if (esp_now_add_peer(&peerInfo) != ESP_OK){
+  //   Serial.println("Failed to add peer");
+  //   return;
+  // }
+
   // WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   // Serial.print("Connecting to WiFi");
 
@@ -82,6 +136,16 @@ void setup()
                   &Task2,      /* Task handle to keep track of created task */
                   1);          /* pin task to core 1 */
   delay(500); 
+
+  // xTaskCreatePinnedToCore(
+  //                 ESPNowTASK,   /* Task function. */
+  //                 "Task3",     /* name of task. */
+  //                 10000,       /* Stack size of task */
+  //                 NULL,        /* parameter of the task */
+  //                 0,           /* priority of the task */
+  //                 &Task3,      /* Task handle to keep track of created task */
+  //                 0);          /* pin task to core 0 */
+  // delay(500); 
 }
 
 //SDA 21 SCL 23 ADDRESS 0x52 
@@ -162,6 +226,34 @@ void LidarTask( void * pvParameters ){
   }
 }
 
+
+// core 1 task1 for main function
+void ESPNowTask( void * pvParameters ){
+  for(;;){
+    long start =millis();
+    
+    xSemaphoreTake(baton,portMAX_DELAY);
+    xSemaphoreGive(baton);
+
+    // Set values to send
+    myData.b = random(1,20);
+    myData.c = 1.2;
+    myData.d = false;
+    
+    // Send message via ESP-NOW
+    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    
+    if (result == ESP_OK) {
+      Serial.println("Sent with success");
+    }
+    else {
+      Serial.println("Error sending the data");
+    }
+    delay(50);
+
+    Serial.println("ESPNOWTask Speed: " + String(millis()-start));
+  }
+}
 
 
 // core 1 task1 for main function

@@ -1,6 +1,6 @@
 {
     "board": "esp32:esp32:nodemcu-32s",
-    "port": "COM5",
-    "sketch": "NodeMCU Testing\\ESPNOW_Receiver_WIFI\\ESPNOW_Receiver_WIFI.ino",
+    "port": "COM3",
+    "sketch": "Arduino\\multi_core_esp32_car\\car_2\\driving.ino",
     "configuration": "FlashFreq=80,UploadSpeed=921600"
 }
