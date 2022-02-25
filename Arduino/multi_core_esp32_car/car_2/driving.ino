@@ -242,7 +242,7 @@ void MainTask( void * pvParameters ){
     previouserror = error;
 
     // Drive SERVO DEFAULT
-    SetServoPos(max(0,min(130,servo_wip-pid_output)));
+    SetServoPos(max(30,min(130,servo_wip-pid_output)));
     // khi có SERVO WITH PID
     // ledcWrite(SERVO_CHANNEL_0,max(255,min(800,servo_wip+pid_output)));
     //ServoTesting();
