@@ -42,9 +42,9 @@ boolean motor_toggle=false;
 #define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
 
 // WIFI_SSID: Tên WIFI
-#define WIFI_SSID "SS A20 FREE"
+#define WIFI_SSID "SCTV-CAM07"
 // WIFI_PASSWORD: Tên pass của WIFI
-#define WIFI_PASSWORD "19781902Cfc"
+#define WIFI_PASSWORD "1234567899"
 
 // SERVO CONFIG
 #define SERVO_CHANNEL_0     0
@@ -210,16 +210,16 @@ void WifiTask( void * pvParameters ){
     xSemaphoreTake(baton,portMAX_DELAY);
     xSemaphoreGive(baton);
     readFromDB();
-    delay(1);
+    Firebase.setFloat(db,"IDs/"+id_car+"_graph/PID_output",random(300));
     Serial.println("TASKWIFI Speed: " + String(millis()-start));
-    vTaskDelay(500);
+    vTaskDelay(200);
   } 
 }
 
 // core 1 task1 for main function
 void MainTask( void * pvParameters ){
   for(;;){
-    long start =millis();
+    // long start =millis();
     
     xSemaphoreTake(baton,portMAX_DELAY);
     xSemaphoreGive(baton);
@@ -246,10 +246,12 @@ void MainTask( void * pvParameters ){
     // khi có SERVO WITH PID
     // ledcWrite(SERVO_CHANNEL_0,max(255,min(800,servo_wip+pid_output)));
     //ServoTesting();
+
+    // Chỉ uncomment nếu muốn đọc số liệu, nếu ko thì nên disable vì nó tốn thời gian excecute
     // Serial.println("P: "+String(kp)+" D: "+String(kd*10)+" I: "+String(ki));
     // Serial.println("P_motor: "+String(kp_motor)+" D_motor: "+String(kd_motor)+" I_motor: "+String(ki_motor));
     // Serial.println("Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle)+" Position: "+String(position));
-    Serial.println("TASK1 Speed: " + String(millis()-start));
+    // Serial.println("TASK1 Speed: " + String(millis()-start));
   }
 }
 
@@ -261,6 +263,8 @@ void setup(){
     
     ledcSetup(SERVO_CHANNEL_0, SERVO_BASE_FREQ, SERVO_TIMER_16_BIT);
     ledcAttachPin(SERVO_PIN, SERVO_CHANNEL_0);
+    // Set servo default
+    SetServoPos(90);
 
     Serial.begin(115200);
 
