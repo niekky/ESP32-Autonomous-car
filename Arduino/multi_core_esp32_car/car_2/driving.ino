@@ -3,7 +3,6 @@ TaskHandle_t Task1;
 TaskHandle_t Task2;
 TaskHandle_t Task3;
 
-
 // Semaphore để share data
 SemaphoreHandle_t baton;
 
@@ -12,6 +11,7 @@ SemaphoreHandle_t baton;
 #include <WiFi.h>
 #include <QTRSensors.h>
 #include "esp_task_wdt.h"
+#include <PID_v1.h>
 #define FIREBASE_USE_PSRAM
 
 
@@ -20,7 +20,8 @@ String id_car="car_2";
 
 
 QTRSensors qtr;
-float kp=0, ki=0, kd=0;
+double kp=0, ki=0, kd=0;
+double Setpoint, Input, Output;
 float kp_motor=0, ki_motor=0, kd_motor=0;
 int pid_output=0;
 int servo_wip=90;
@@ -35,6 +36,8 @@ const uint8_t SensorCount = 10;
 uint16_t sensorValues[SensorCount];
 
 boolean motor_toggle=false;
+
+PID myPID(&Input,&Output,&Setpoint,kp,ki,kd,DIRECT);
 
 // HOST lấy từ Project Settings/Service Accounts/Firebase Admin SDK/databaseURL
 #define FIREBASE_HOST "https://nodemcu-a4907-default-rtdb.asia-southeast1.firebasedatabase.app" 
@@ -140,21 +143,21 @@ void ServoTesting(){
 void readFromDB(){
     if (Firebase.getFloat(db,"IDs/"+id_car+"/P_servo")){
       if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
-        kp=db.to<float>();
+        kp=(double) db.to<float>();
       }
     } else {
       Serial.println(db.errorReason());
     }
     if (Firebase.getFloat(db,"/IDs/"+id_car+"/D_servo")){
       if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
-        kd=db.to<float>();
+        kd=(double) db.to<float>();
       }
     } else {
       Serial.println(db.errorReason());
     }
     if (Firebase.getFloat(db,"/IDs/"+id_car+"/I_servo")){
       if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
-        ki=db.to<float>();
+        ki=(double)db.to<float>();
       }
     } else {
       Serial.println(db.errorReason());
@@ -234,15 +237,20 @@ void MainTask( void * pvParameters ){
         digitalWrite(MOTOR_PIN_2,0);
         ledcWrite(MOTOR_CHANNEL_0,0);
     }
+    // Input = qtr.readLineBlack(sensorValues);
     position = qtr.readLineBlack(sensorValues);
-    // Note: xem lại phần error sao cho nó phù hợp dựa trên position nha
-  
-    error=3800-position;
-    pid_output = kp*error + kd*(error - previouserror);
-    previouserror = error;
+    // PID LIBRARY
+    // myPID.SetTunings(kp,ki,kd);
+    // myPID.SetOutputLimits(-180,180);
+    // myPID.Compute();
+    // pid_output=(int) Output;
 
-    // Drive SERVO DEFAULT
-    SetServoPos(max(0,min(130,servo_wip-pid_output)));
+    // error=3800-position;
+    // pid_output = kp*error + kd*(error - previouserror);
+    // previouserror = error;
+    
+    SetServoPos(max(30,min(130,servo_wip-pid_output)));
+    // SetServoPos(Output);
     // khi có SERVO WITH PID
     // ledcWrite(SERVO_CHANNEL_0,max(255,min(800,servo_wip+pid_output)));
     //ServoTesting();
@@ -253,6 +261,9 @@ void MainTask( void * pvParameters ){
     // Serial.println("Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle)+" Position: "+String(position));
     // Serial.println("TASK1 Speed: " + String(millis()-start));
   }
+    Serial.println("Input: "+String(Input)+" Output: "+String(pid_output));
+    Serial.println("TASK1 Speed: " + String(millis()-start));
+  } 
 }
 
 void setup(){
