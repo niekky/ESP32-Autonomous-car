@@ -22,9 +22,13 @@ SemaphoreHandle_t baton;
 #define WIFI_SSID "SS A20 FREE"
 #define WIFI_PASSWORD "19781902Cfc"
 
-#define red_pinout 12
-#define yellow_pinout 14
-#define green_pinout 27
+#define red_pinout 26
+#define yellow_pinout 27
+#define green_pinout 14
+
+#define c_red_pinout 32
+#define c_yellow_pinout 33
+#define c_green_pinout 25
 
 #include <Wire.h>
 
@@ -38,6 +42,9 @@ typedef struct struct_message {
 
 // Create a struct_message called myData
 struct_message myData;
+
+uint8_t broadcastAddress[] = {0xD8, 0xBF, 0xC0, 0xFA, 0x7A, 0x8E};
+
 
 // callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
@@ -67,31 +74,26 @@ void setup()
   WiFi.mode(WIFI_STA);
 
   // Init ESP-NOW
-  // if (esp_now_init() != ESP_OK) {
-  //   Serial.println("Error initializing ESP-NOW");
-  //   return;
-  // }
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
 
-
-
-
+  // Once ESPNow is successfully Init, we will register for Send CB to
+  // get the status of Trasnmitted packet
+  esp_now_register_send_cb(OnDataSent);
   
-
-  // // Once ESPNow is successfully Init, we will register for Send CB to
-  // // get the status of Trasnmitted packet
-  // esp_now_register_send_cb(OnDataSent);
+  // Register peer
+  esp_now_peer_info_t peerInfo;
+  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+  peerInfo.channel = 0;  
+  peerInfo.encrypt = false;
   
-  // // Register peer
-  // esp_now_peer_info_t peerInfo;
-  // memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-  // peerInfo.channel = 0;  
-  // peerInfo.encrypt = false;
-  
-  // // Add peer        
-  // if (esp_now_add_peer(&peerInfo) != ESP_OK){
-  //   Serial.println("Failed to add peer");
-  //   return;
-  // }
+  // Add peer        
+  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+    Serial.println("Failed to add peer");
+    return;
+  }
 
   // WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   // Serial.print("Connecting to WiFi");
@@ -114,6 +116,8 @@ void setup()
   disableCore0WDT();
   disableCore1WDT();
   disableLoopWDT();
+
+
 
   //TASK WIFI
   xTaskCreatePinnedToCore(
@@ -186,28 +190,34 @@ void count(int max_count){
   }
 }
 
-void red(){
+void red(int n,int pinout){
   // Firebase.RTDB.setString(&fbdo, "traffic/light", "red");
   traffic_state=0;
-  digitalWrite(red_pinout,HIGH);
-  count(10);
-  digitalWrite(red_pinout,LOW);
+  digitalWrite(pinout,HIGH);
+  count(n);
+  digitalWrite(pinout,LOW);
 }
 
-void yellow(){
+void yellow(int n,int pinout){
   // Firebase.RTDB.setString(&fbdo, "traffic/light", "yellow");
   traffic_state=1;
-  digitalWrite(yellow_pinout,HIGH);
-  count(3);
-  digitalWrite(yellow_pinout,LOW);
+  digitalWrite(pinout,HIGH);
+  count(n);
+  digitalWrite(pinout,LOW);
 }
 
-void green(){
+void green(int n,int pinout){
   // Firebase.RTDB.setString(&fbdo, "traffic/light", "green");
   traffic_state=2;
-  digitalWrite(green_pinout,HIGH);
-  count(7);
-  digitalWrite(green_pinout,LOW);
+  digitalWrite(pinout,HIGH);
+  count(n);
+  digitalWrite(pinout,LOW);
+}
+
+void countdown(){
+  red(1,c_red_pinout);
+  yellow(1,c_yellow_pinout);
+  green(1,c_green_pinout);
 }
 
 // core 1 task1 for main function
@@ -241,7 +251,7 @@ void ESPNowTask( void * pvParameters ){
     myData.d = false;
     
     // Send message via ESP-NOW
-    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
     
     if (result == ESP_OK) {
       Serial.println("Sent with success");
@@ -263,11 +273,9 @@ void TrafficTask( void * pvParameters ){
     
     xSemaphoreTake(baton,portMAX_DELAY);
     xSemaphoreGive(baton);
-
-    green();
-    yellow();
-    red();  
-
+    red(6,red_pinout);  
+    yellow(2,yellow_pinout);
+    green(4,green_pinout);
     Serial.println("TrafficTask Speed: " + String(millis()-start));
   }
 }
@@ -277,5 +285,3 @@ void loop()
 {  
   vTaskDelete(NULL);
 }
-
-

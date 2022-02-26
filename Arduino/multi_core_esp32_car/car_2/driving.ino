@@ -11,7 +11,7 @@ SemaphoreHandle_t baton;
 #include <WiFi.h>
 #include <QTRSensors.h>
 #include "esp_task_wdt.h"
-#include <PID_v1.h>
+#include "QuickPID.h"
 #define FIREBASE_USE_PSRAM
 
 
@@ -20,8 +20,8 @@ String id_car="car_2";
 
 
 QTRSensors qtr;
-double kp=0, ki=0, kd=0;
-double Setpoint, Input, Output;
+float kp=0, ki=0, kd=0;
+float Setpoint, Input, Output;
 float kp_motor=0, ki_motor=0, kd_motor=0;
 int pid_output=0;
 int servo_wip=90;
@@ -37,7 +37,7 @@ uint16_t sensorValues[SensorCount];
 
 boolean motor_toggle=false;
 
-PID myPID(&Input,&Output,&Setpoint,kp,ki,kd,DIRECT);
+QuickPID myPID(&Input,&Output,&Setpoint,kp,ki,kd,DIRECT);
 
 // HOST lấy từ Project Settings/Service Accounts/Firebase Admin SDK/databaseURL
 #define FIREBASE_HOST "https://nodemcu-a4907-default-rtdb.asia-southeast1.firebasedatabase.app" 
@@ -241,8 +241,8 @@ void MainTask( void * pvParameters ){
     position = qtr.readLineBlack(sensorValues);
     // PID LIBRARY
     // myPID.SetTunings(kp,ki,kd);
-    // myPID.SetOutputLimits(-180,180);
     // myPID.Compute();
+
     // pid_output=(int) Output;
 
     // error=3800-position;
@@ -271,9 +271,9 @@ void setup(){
     ledcSetup(SERVO_CHANNEL_0, SERVO_BASE_FREQ, SERVO_TIMER_16_BIT);
     ledcAttachPin(SERVO_PIN, SERVO_CHANNEL_0);
     // PID LIBRARY
-    // Setpoint=5000;
-    // myPID.SetMode(AUTOMATIC);
-    // myPID.SetSampleTime(100);
+    // Setpoint=4000;
+    // myPID.SetMode(myPID.Control::automatic);
+    // myPID.SetSampleTimeUs(50000);
     // myPID.SetOutputLimits(-180,180);
     Serial.begin(115200);
 
