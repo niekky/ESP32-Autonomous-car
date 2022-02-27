@@ -1,10 +1,8 @@
 
-
 // Khai báo task
 TaskHandle_t Task1;
 TaskHandle_t Task2;
 TaskHandle_t Task3;
-
 
 // Semaphore để share data
 SemaphoreHandle_t baton;
@@ -22,9 +20,17 @@ SemaphoreHandle_t baton;
 #define WIFI_SSID "SS A20 FREE"
 #define WIFI_PASSWORD "19781902Cfc"
 
-#define red_pinout 12
-#define yellow_pinout 14
-#define green_pinout 27
+#define red_pinout_1 12
+#define yellow_pinout_1 14
+#define green_pinout_1 27
+
+#define red_pinout_2 26
+#define yellow_pinout_2 25
+#define green_pinout_2 33
+
+#define c_red_pinout 32
+#define c_yellow_pinout 18
+#define c_green_pinout 5
 
 #include <Wire.h>
 
@@ -51,6 +57,15 @@ unsigned char fail_flag;
 unsigned short lenth_val = 0;
 unsigned char i2c_rx_buf[16];
 unsigned char dirsend_flag=0;
+unsigned long previous_time1=0;
+unsigned long previous_time2=0;
+unsigned long previous_time3=0;
+unsigned long previous_time4=0;
+unsigned long previous_time5=0;
+unsigned long previous_time6=0;
+
+uint8_t broadcastAddress[] = {0xD8, 0xBF, 0xC0, 0xFA, 0x7A, 0x8E};
+
 int x=0;
 byte traffic_state;
 
@@ -58,55 +73,43 @@ byte traffic_state;
 
 void setup()
 {
+  Wire.begin();
   Serial.begin(9600,SERIAL_8N1);
-  pinMode(red_pinout,OUTPUT);
-  pinMode(yellow_pinout,OUTPUT);
-  pinMode(green_pinout,OUTPUT);
+  pinMode(red_pinout_1,OUTPUT);
+  pinMode(yellow_pinout_1,OUTPUT);
+  pinMode(green_pinout_1,OUTPUT);
+  pinMode(red_pinout_2,OUTPUT);
+  pinMode(yellow_pinout_2,OUTPUT);
+  pinMode(green_pinout_2,OUTPUT);
+  pinMode(c_red_pinout,OUTPUT);
+  pinMode(c_yellow_pinout,OUTPUT);
+  pinMode(c_green_pinout,OUTPUT);
+
 
   // Set device as a Wi-Fi Station
   WiFi.mode(WIFI_STA);
 
   // Init ESP-NOW
-  // if (esp_now_init() != ESP_OK) {
-  //   Serial.println("Error initializing ESP-NOW");
-  //   return;
-  // }
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
 
-
-
-
+  // Once ESPNow is successfully Init, we will register for Send CB to
+  // get the status of Trasnmitted packet
+  esp_now_register_send_cb(OnDataSent);
   
-
-  // // Once ESPNow is successfully Init, we will register for Send CB to
-  // // get the status of Trasnmitted packet
-  // esp_now_register_send_cb(OnDataSent);
+  // Register peer
+  esp_now_peer_info_t peerInfo;
+  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+  peerInfo.channel = 0;  
+  peerInfo.encrypt = false;
   
-  // // Register peer
-  // esp_now_peer_info_t peerInfo;
-  // memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-  // peerInfo.channel = 0;  
-  // peerInfo.encrypt = false;
-  
-  // // Add peer        
-  // if (esp_now_add_peer(&peerInfo) != ESP_OK){
-  //   Serial.println("Failed to add peer");
-  //   return;
-  // }
-
-  // WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  // Serial.print("Connecting to WiFi");
-
-  // while (WiFi.status() != WL_CONNECTED){
-  //   Serial.print(".");
-  //   delay(300);
-  // }
-  // Serial.println();
-  // Serial.print("Connected with IP: ");
-  // Serial.println(WiFi.localIP());
-  // Serial.println();
-  
-  // Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
-  // Firebase.reconnectWiFi(true);
+  // Add peer        
+  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+    Serial.println("Failed to add peer");
+    return;
+  }
 
   baton = xSemaphoreCreateMutex();
 
@@ -130,25 +133,25 @@ void setup()
   xTaskCreatePinnedToCore(
                   TrafficTask,   /* Task function. */
                   "Task2",     /* name of task. */
-                  10000,       /* Stack size of task */
+                  1000,       /* Stack size of task */
                   NULL,        /* parameter of the task */
                   1,           /* priority of the task */
                   &Task2,      /* Task handle to keep track of created task */
                   1);          /* pin task to core 1 */
   delay(500); 
 
-  // xTaskCreatePinnedToCore(
-  //                 ESPNowTASK,   /* Task function. */
-  //                 "Task3",     /* name of task. */
-  //                 10000,       /* Stack size of task */
-  //                 NULL,        /* parameter of the task */
-  //                 0,           /* priority of the task */
-  //                 &Task3,      /* Task handle to keep track of created task */
-  //                 0);          /* pin task to core 0 */
-  // delay(500); 
+  xTaskCreatePinnedToCore(
+                  ESPNowTask,   /* Task function. */
+                  "Task3",     /* name of task. */
+                  10000,       /* Stack size of task */
+                  NULL,        /* parameter of the task */
+                  0,           /* priority of the task */
+                  &Task3,      /* Task handle to keep track of created task */
+                  0);          /* pin task to core 0 */
+  delay(500); 
 }
 
-//SDA 21 SCL 23 ADDRESS 0x52 
+//SDA 21 SCL 22 ADDRESS 0x52 
 void SensorRead(unsigned char addr,unsigned char* datbuf,unsigned char cnt) 
 {
   unsigned short result=0;
@@ -186,29 +189,29 @@ void count(int max_count){
   }
 }
 
-void red(){
-  // Firebase.RTDB.setString(&fbdo, "traffic/light", "red");
-  traffic_state=0;
-  digitalWrite(red_pinout,HIGH);
-  count(10);
-  digitalWrite(red_pinout,LOW);
-}
+// void red(){
+//   // Firebase.RTDB.setString(&fbdo, "traffic/light", "red");
+//   traffic_state=0;
+//   digitalWrite(red_pinout_1,HIGH);
+//   count(10);
+//   digitalWrite(red_pinout,LOW);
+// }
 
-void yellow(){
-  // Firebase.RTDB.setString(&fbdo, "traffic/light", "yellow");
-  traffic_state=1;
-  digitalWrite(yellow_pinout,HIGH);
-  count(3);
-  digitalWrite(yellow_pinout,LOW);
-}
+// void yellow(){
+//   // Firebase.RTDB.setString(&fbdo, "traffic/light", "yellow");
+//   traffic_state=1;
+//   digitalWrite(yellow_pinout,HIGH);
+//   count(3);
+//   digitalWrite(yellow_pinout,LOW);
+// }
 
-void green(){
-  // Firebase.RTDB.setString(&fbdo, "traffic/light", "green");
-  traffic_state=2;
-  digitalWrite(green_pinout,HIGH);
-  count(7);
-  digitalWrite(green_pinout,LOW);
-}
+// void green(){
+//   // Firebase.RTDB.setString(&fbdo, "traffic/light", "green");
+//   traffic_state=2;
+//   digitalWrite(green_pinout,HIGH);
+//   count(7);
+//   digitalWrite(green_pinout,LOW);
+// }
 
 // core 1 task1 for main function
 void LidarTask( void * pvParameters ){
@@ -230,7 +233,7 @@ void LidarTask( void * pvParameters ){
 // core 1 task1 for main function
 void ESPNowTask( void * pvParameters ){
   for(;;){
-    long start =millis();
+    // long start =millis();
     
     xSemaphoreTake(baton,portMAX_DELAY);
     xSemaphoreGive(baton);
@@ -244,14 +247,14 @@ void ESPNowTask( void * pvParameters ){
     esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
     
     if (result == ESP_OK) {
-      Serial.println("Sent with success");
+      Serial.println("ESPNOW: Sent with success");
     }
     else {
-      Serial.println("Error sending the data");
+      Serial.println("ESPNOW: Error sending the data");
     }
-    delay(50);
+    delay(100);
 
-    Serial.println("ESPNOWTask Speed: " + String(millis()-start));
+    // Serial.println("ESPNOWTask Speed: " + String(millis()-start));
   }
 }
 
@@ -259,16 +262,54 @@ void ESPNowTask( void * pvParameters ){
 // core 1 task1 for main function
 void TrafficTask( void * pvParameters ){
   for(;;){
-    long start =millis();
+    // long start =millis();
     
     xSemaphoreTake(baton,portMAX_DELAY);
     xSemaphoreGive(baton);
 
-    green();
-    yellow();
-    red();  
+    // red1 ON, green2 ON
+    traffic_state=0;
+    digitalWrite(red_pinout_1,HIGH);
+    digitalWrite(yellow_pinout_1,LOW);
+    digitalWrite(green_pinout_1,LOW);
+    digitalWrite(red_pinout_2,LOW);
+    digitalWrite(yellow_pinout_2,LOW);
+    digitalWrite(green_pinout_2,HIGH);
+    Serial.println("                  TrafficTASK: traffic_state="+String(traffic_state));
+    delay(4000);
 
-    Serial.println("TrafficTask Speed: " + String(millis()-start));
+    // red1 ON, yellow2 ON
+    digitalWrite(red_pinout_1,HIGH);
+    digitalWrite(yellow_pinout_1,LOW);
+    digitalWrite(green_pinout_1,LOW);
+    digitalWrite(red_pinout_2,LOW);
+    digitalWrite(yellow_pinout_2,HIGH);
+    digitalWrite(green_pinout_2,LOW);
+    Serial.println("                  TrafficTASK: traffic_state="+String(traffic_state));
+    delay(1000);
+
+    // green1 ON, red2 ON
+    traffic_state=1;
+    digitalWrite(red_pinout_1,LOW);
+    digitalWrite(yellow_pinout_1,LOW);
+    digitalWrite(green_pinout_1,HIGH);
+    digitalWrite(red_pinout_2,HIGH);
+    digitalWrite(yellow_pinout_2,LOW);
+    digitalWrite(green_pinout_2,LOW);
+    Serial.println("                  TrafficTASK: traffic_state="+String(traffic_state));
+    delay(4000);
+
+    // yellow1 ON, red2 ON
+    digitalWrite(red_pinout_1,LOW);
+    digitalWrite(yellow_pinout_1,HIGH);
+    digitalWrite(green_pinout_1,LOW);
+    digitalWrite(red_pinout_2,HIGH);
+    digitalWrite(yellow_pinout_2,LOW);
+    digitalWrite(green_pinout_2,LOW);
+    Serial.println("                  TrafficTASK: traffic_state="+String(traffic_state));
+    delay(1000);
+
+    // Serial.println("TrafficTask Speed: " + String(millis()-start));
   }
 }
 

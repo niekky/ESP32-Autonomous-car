@@ -11,17 +11,17 @@ SemaphoreHandle_t baton;
 #include <WiFi.h>
 #include <QTRSensors.h>
 #include "esp_task_wdt.h"
-#include <PID_v1.h>
-#define FIREBASE_USE_PSRAM
+#include "QuickPID.h"
+#include <esp_now.h>
 
+#define FIREBASE_USE_PSRAM
 
 // ID CAR
 String id_car="car_2";
 
-
 QTRSensors qtr;
-double kp=0, ki=0, kd=0;
-double Setpoint, Input, Output;
+float kp=0, ki=0, kd=0;
+float Setpoint=4000, Input, Output;
 float kp_motor=0, ki_motor=0, kd_motor=0;
 int pid_output=0;
 int servo_wip=90;
@@ -30,6 +30,14 @@ int error=0;
 int previouserror=0;
 uint16_t position=0;
 
+typedef struct struct_message {
+  int b;
+  float c;
+  bool d;
+} struct_message;
+
+struct_message myData;
+
 float previous_error = 0, previous_I = 0;
 float previous_error_motor=0, previous_I_motor=0;
 const uint8_t SensorCount = 10;
@@ -37,8 +45,7 @@ uint16_t sensorValues[SensorCount];
 
 boolean motor_toggle=false;
 
-PID myPID(&Input,&Output,&Setpoint,kp,ki,kd,DIRECT);
-
+QuickPID myPID(&Input,&Output,&Setpoint);
 // HOST lấy từ Project Settings/Service Accounts/Firebase Admin SDK/databaseURL
 #define FIREBASE_HOST "https://nodemcu-a4907-default-rtdb.asia-southeast1.firebasedatabase.app" 
 // Auth lấy từ Project Settings/Service Accounts/Database Secrets/Secret
@@ -53,7 +60,7 @@ PID myPID(&Input,&Output,&Setpoint,kp,ki,kd,DIRECT);
 #define SERVO_CHANNEL_0     0
 #define SERVO_TIMER_16_BIT  16
 #define SERVO_BASE_FREQ     50
-#define SERVO_PIN           5
+#define SERVO_PIN           21
 // MOTOR CONFIG
 #define MOTOR_CHANNEL_0     1
 #define MOTOR_TIMER_13_BIT  16
@@ -71,7 +78,7 @@ String jsonValues[6];
 void SensorCalibrate(){
   // configure the sensors
   qtr.setTypeRC();
-  qtr.setSensorPins((const uint8_t[]){21, 19, 18, 17, 16, 32, 33, 25,26,27}, 10);
+  qtr.setSensorPins((const uint8_t[]){5, 19, 18, 17, 16, 32, 33, 25,26,27}, 10);
   pinMode(2, OUTPUT);
   digitalWrite(2, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
 
@@ -206,6 +213,21 @@ void readFromDB(){
     }
 }
 
+// callback function that will be executed when data is received
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+  memcpy(&myData, incomingData, sizeof(myData));
+  Serial.print("Bytes received: ");
+  Serial.println(len);
+  Serial.print("Int: ");
+  Serial.println(myData.b);
+  Serial.print("Float: ");
+  Serial.println(myData.c);
+  Serial.print("Bool: ");
+  Serial.println(myData.d);
+  Serial.println();
+}
+ 
+
 // core 0 for calling api
 void WifiTask( void * pvParameters ){
   for(;;){
@@ -222,7 +244,7 @@ void WifiTask( void * pvParameters ){
 // core 1 task1 for main function
 void MainTask( void * pvParameters ){
   for(;;){
-    // long start =millis();
+    long start =millis();
     
     xSemaphoreTake(baton,portMAX_DELAY);
     xSemaphoreGive(baton);
@@ -237,22 +259,21 @@ void MainTask( void * pvParameters ){
         digitalWrite(MOTOR_PIN_2,0);
         ledcWrite(MOTOR_CHANNEL_0,0);
     }
-    // Input = qtr.readLineBlack(sensorValues);
-    position = qtr.readLineBlack(sensorValues);
-    // PID LIBRARY
-    // myPID.SetTunings(kp,ki,kd);
-    // myPID.SetOutputLimits(-180,180);
-    // myPID.Compute();
-    // pid_output=(int) Output;
 
+    // RAW PID FUNCTION
+    // position = qtr.readLineBlack(sensorValues);
     // error=3800-position;
     // pid_output = kp*error + kd*(error - previouserror);
     // previouserror = error;
-    
-    SetServoPos(max(30,min(130,servo_wip-pid_output)));
-    // SetServoPos(Output);
-    // khi có SERVO WITH PID
-    // ledcWrite(SERVO_CHANNEL_0,max(255,min(800,servo_wip+pid_output)));
+
+    // PID LIBRARY
+    Input = (float) position;
+    myPID.SetTunings(kp,ki,kd);
+    myPID.Compute();
+    pid_output=(int) Output;
+
+    SetServoPos(max(20,min(130,servo_wip-pid_output)));
+
     //ServoTesting();
 
     // Chỉ uncomment nếu muốn đọc số liệu, nếu ko thì nên disable vì nó tốn thời gian excecute
@@ -260,7 +281,6 @@ void MainTask( void * pvParameters ){
     // Serial.println("P_motor: "+String(kp_motor)+" D_motor: "+String(kd_motor)+" I_motor: "+String(ki_motor));
     // Serial.println("Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle)+" Position: "+String(position));
     // Serial.println("TASK1 Speed: " + String(millis()-start));
-  }
     Serial.println("Input: "+String(Input)+" Output: "+String(pid_output));
     Serial.println("TASK1 Speed: " + String(millis()-start));
   } 
@@ -274,6 +294,13 @@ void setup(){
     
     ledcSetup(SERVO_CHANNEL_0, SERVO_BASE_FREQ, SERVO_TIMER_16_BIT);
     ledcAttachPin(SERVO_PIN, SERVO_CHANNEL_0);
+
+    // PID LIBRARY
+    myPID.SetMode(myPID.Control::automatic);
+    myPID.SetTunings(kp,ki,kd);
+    myPID.SetOutputLimits(-180,180);
+    myPID.SetSampleTimeUs(50000);
+
     // Set servo default
     SetServoPos(90);
 
@@ -295,6 +322,21 @@ void setup(){
     // Kết nối với Firebase
     Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
     Firebase.reconnectWiFi(true);
+
+
+    // //ESPNOW 
+    // // Set device as a Wi-Fi Station
+    // WiFi.mode(WIFI_STA);
+
+    // // Init ESP-NOW
+    // if (esp_now_init() != 0) {
+    //   Serial.println("Error initializing ESP-NOW");
+    //   return;
+    // }
+    
+    // // Once ESPNow is successfully Init, we will register for recv CB to
+    // // get recv packer info
+    // esp_now_register_recv_cb(OnDataRecv);
 
     // Calibrate sensor for a while
     SensorCalibrate();
