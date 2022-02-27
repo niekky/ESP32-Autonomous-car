@@ -11,13 +11,11 @@ SemaphoreHandle_t baton;
 #include <WiFi.h>
 #include <QTRSensors.h>
 #include "esp_task_wdt.h"
-#include "QuickPID.h"
+// #include "QuickPID.h"
 #define FIREBASE_USE_PSRAM
-
 
 // ID CAR
 String id_car="car_2";
-
 
 QTRSensors qtr;
 float kp=0, ki=0, kd=0;
@@ -37,7 +35,7 @@ uint16_t sensorValues[SensorCount];
 
 boolean motor_toggle=false;
 
-QuickPID myPID(&Input,&Output,&Setpoint,kp,ki,kd,DIRECT);
+// QuickPID myPID(&Input,&Output,&Setpoint,kp,ki,kd,DIRECT);
 
 // HOST lấy từ Project Settings/Service Accounts/Firebase Admin SDK/databaseURL
 #define FIREBASE_HOST "https://nodemcu-a4907-default-rtdb.asia-southeast1.firebasedatabase.app" 
@@ -245,15 +243,15 @@ void MainTask( void * pvParameters ){
 
     // pid_output=(int) Output;
 
-    // error=3800-position;
-    // pid_output = kp*error + kd*(error - previouserror);
-    // previouserror = error;
+    error=3800-position;
+    pid_output = kp*error + kd*(error - previouserror);
+    previouserror = error;
     
-    SetServoPos(max(30,min(130,servo_wip-pid_output)));
+    // SetServoPos(max(30,min(130,servo_wip-pid_output)));
     // SetServoPos(Output);
     // khi có SERVO WITH PID
     // ledcWrite(SERVO_CHANNEL_0,max(255,min(800,servo_wip+pid_output)));
-    //ServoTesting();
+    ServoTesting();
     // Serial.println("P: "+String(kp)+" D: "+String(kd*10)+" I: "+String(ki));
     // Serial.println("P_motor: "+String(kp_motor)+" D_motor: "+String(kd_motor)+" I_motor: "+String(ki_motor));
     // Serial.println("Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle)+" Position: "+String(position));

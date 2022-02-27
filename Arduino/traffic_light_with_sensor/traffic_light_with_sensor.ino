@@ -118,14 +118,13 @@ void setup()
   disableLoopWDT();
 
 
-
   //TASK WIFI
   xTaskCreatePinnedToCore(
                   LidarTask,   /* Task function. */
                   "Task1",     /* name of task. */
                   10000,       /* Stack size of task */
                   NULL,        /* parameter of the task */
-                  1,           /* priority of the task */
+                  2,           /* priority of the task */
                   &Task1,      /* Task handle to keep track of created task */
                   1);          /* pin task to core 0 */                  
   delay(500); 
@@ -270,7 +269,7 @@ void ESPNowTask( void * pvParameters ){
 void TrafficTask( void * pvParameters ){
   for(;;){
     long start =millis();
-    
+    countdown();
     xSemaphoreTake(baton,portMAX_DELAY);
     xSemaphoreGive(baton);
     red(6,red_pinout);  
