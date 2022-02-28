@@ -18,15 +18,16 @@ SemaphoreHandle_t baton;
 String id_car = "car_2";
 
 QTRSensors qtr;
-float kp = 0, ki = 0, kd = 0;
-float Setpoint, Input, Output;
-float kp_motor = 0, ki_motor = 0, kd_motor = 0;
-int pid_output = 0;
-int servo_wip = 90;
-int motor_speed = 0;
-int error = 0;
-int previouserror = 0;
-uint16_t position = 0;
+float kp=0, ki=0, kd=0;
+float Setpoint=4000, Input, Output;
+float kp_motor=0, ki_motor=0, kd_motor=0;
+int pid_output=0;
+int servo_wip=90;
+int motor_speed=0;
+int sum_err=0;
+int error=0;
+int previouserror=0;
+uint16_t position=0;
 
 typedef struct struct_message
 {
@@ -307,8 +308,9 @@ void MainTask(void *pvParameters)
 
     // RAW PID FUNCTION
     position = qtr.readLineBlack(sensorValues);
-    error = 3800 - position;
-    pid_output = kp * error + kd * (error - previouserror);
+    error=4000-position;
+    pid_output = kp*error + ki*sum_err + kd*(error - previouserror);
+    sum_err+=error;
     previouserror = error;
 
     // PID LIBRARY
