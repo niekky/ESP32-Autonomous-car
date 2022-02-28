@@ -10,6 +10,7 @@ SemaphoreHandle_t baton;
 #include "FirebaseESP32.h"
 #include <WiFi.h>
 #include <QTRSensors.h>
+#include <esp_now.h>
 #include "esp_task_wdt.h"
 // #include "QuickPID.h"
 #define FIREBASE_USE_PSRAM
@@ -18,23 +19,22 @@ SemaphoreHandle_t baton;
 String id_car = "car_2";
 
 QTRSensors qtr;
-float kp=0, ki=0, kd=0;
+float kp=0.02, ki=0, kd=0.016;
 float Setpoint=4000, Input, Output;
-float kp_motor=0, ki_motor=0, kd_motor=0;
+float kp_motor=0.5, ki_motor=0, kd_motor=0.2;
 int pid_output=0;
-int servo_wip=90;
-int motor_speed=0;
+int servo_wip=75;
+int motor_speed=20000;
 int sum_err=0;
 int error=0;
 int count_err=0;
 int previouserror=0;
+int hall;
 uint16_t position=0;
 
 typedef struct struct_message
 {
-  int b;
-  float c;
-  bool d;
+  byte traffic_state;
 } struct_message;
 
 struct_message myData;
@@ -44,7 +44,9 @@ float previous_error_motor = 0, previous_I_motor = 0;
 const uint8_t SensorCount = 10;
 uint16_t sensorValues[SensorCount];
 
-boolean motor_toggle = false;
+// boolean motor_toggle = false;
+boolean motor_toggle = true;
+
 
 // QuickPID myPID(&Input,&Output,&Setpoint,kp,ki,kd,DIRECT);
 
@@ -70,6 +72,7 @@ boolean motor_toggle = false;
 #define MOTOR_PIN_ENB 13
 #define MOTOR_PIN_1 12
 #define MOTOR_PIN_2 14
+#define HALL_PIN 39
 
 FirebaseData db;
 FirebaseJson json;
@@ -81,7 +84,8 @@ void SensorCalibrate()
 {
   // configure the sensors
   qtr.setTypeRC();
-  qtr.setSensorPins((const uint8_t[]){5, 19, 18, 17, 16, 32, 33, 25, 26, 27}, 10);
+  qtr.setSensorPins((const uint8_t[]){16, 17, 5, 18, 19, 32, 33, 25,  26, 27}, 10);
+  qtr.setEmitterPin(4);
   pinMode(2, OUTPUT);
   digitalWrite(2, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
 
@@ -162,10 +166,6 @@ void readFromDB(){
       kp=db.to<float>();
     }
   } else {
-    Serial.println(db.errorReason());
-  }
-  else
-  {
     Serial.println(db.errorReason());
   }
   if (Firebase.getFloat(db, "/IDs/" + id_car + "/D_servo"))
@@ -264,13 +264,14 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
   memcpy(&myData, incomingData, sizeof(myData));
   Serial.print("Bytes received: ");
   Serial.println(len);
-  Serial.print("Int: ");
-  Serial.println(myData.b);
-  Serial.print("Float: ");
-  Serial.println(myData.c);
-  Serial.print("Bool: ");
-  Serial.println(myData.d);
-  Serial.println();
+  Serial.print("Traffic State: ");
+  Serial.println(myData.traffic_state);
+  while (myData.traffic_state==1 && hall==0){
+    hall=0;
+    digitalWrite(MOTOR_PIN_1, 0);
+    digitalWrite(MOTOR_PIN_2, 0);
+    ledcWrite(MOTOR_CHANNEL_0, 0);
+  }
 }
 
 // core 0 for calling api
@@ -288,6 +289,30 @@ void WifiTask(void *pvParameters)
   }
 }
 
+// core 0 for calling api
+void HallTask(void *pvParameters)
+{
+  for (;;)
+  {
+    long start = millis();
+    xSemaphoreTake(baton, portMAX_DELAY);
+    xSemaphoreGive(baton);
+
+    hall=digitalRead(HALL_PIN);
+
+    if (hall==0){
+      digitalWrite(MOTOR_PIN_1, 0);
+      digitalWrite(MOTOR_PIN_2, 0);
+      ledcWrite(MOTOR_CHANNEL_0, 0);
+      delay(5000);
+    }
+
+    Serial.println("            Hall: "+String(hall));
+    Serial.println("TASKWIFI Speed: " + String(millis() - start));
+  }
+}
+
+
 // core 1 task1 for main function
 void MainTask(void *pvParameters)
 {
@@ -295,8 +320,8 @@ void MainTask(void *pvParameters)
   {
     long start = millis();
 
-    xSemaphoreTake(baton, portMAX_DELAY);
-    xSemaphoreGive(baton);
+    // xSemaphoreTake(baton, portMAX_DELAY);
+    // xSemaphoreGive(baton);
 
     // Drive motor
     if (motor_toggle == true)
@@ -312,11 +337,14 @@ void MainTask(void *pvParameters)
       ledcWrite(MOTOR_CHANNEL_0, 0);
     }
 
+    // Read Hall sensor
+    int hall=digitalRead(HALL_PIN);
+
     // RAW PID FUNCTION
     position = qtr.readLineBlack(sensorValues);
     error=4000-position;
     pid_output = kp*error + ki*sum_err + kd*(error - previouserror);
-    windup(sum_err);
+    windup();
     previouserror = error;
 
     // PID LIBRARY
@@ -327,6 +355,17 @@ void MainTask(void *pvParameters)
 
     SetServoPos(max(20, min(130, servo_wip - pid_output)));
 
+    hall=digitalRead(HALL_PIN);
+
+    if (hall==0){
+      digitalWrite(MOTOR_PIN_1, 0);
+      digitalWrite(MOTOR_PIN_2, 0);
+      ledcWrite(MOTOR_CHANNEL_0, 0);
+      delay(5000);
+    }
+
+    Serial.println("            Hall: "+String(hall));
+
     // ServoTesting();
 
     // Chỉ uncomment nếu muốn đọc số liệu, nếu ko thì nên disable vì nó tốn thời gian excecute
@@ -335,6 +374,7 @@ void MainTask(void *pvParameters)
     // Serial.println("Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle)+" Position: "+String(position));
     // Serial.println("TASK1 Speed: " + String(millis()-start));
     Serial.println("Input: " + String(Input) + " Output: " + String(pid_output));
+    Serial.println("                    Hall read: "+String(hall));
     Serial.println("TASK1 Speed: " + String(millis() - start));
   }
 }
@@ -343,6 +383,7 @@ void setup()
 {
   pinMode(MOTOR_PIN_1, OUTPUT);
   pinMode(MOTOR_PIN_2, OUTPUT);
+  pinMode(HALL_PIN,INPUT);
   ledcSetup(MOTOR_CHANNEL_0, MOTOR_BASE_FREQ, MOTOR_TIMER_13_BIT);
   ledcAttachPin(MOTOR_PIN_ENB, MOTOR_CHANNEL_0);
 
@@ -360,37 +401,36 @@ void setup()
 
   Serial.begin(115200);
 
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.print("Connecting to WiFi");
+  // WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  // Serial.print("Connecting to WiFi");
 
-  // Kiểm tra kết nối WIFI
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    Serial.print(".");
-    delay(300);
-  }
-  Serial.println();
-  Serial.print("Connected with IP: ");
-  Serial.println(WiFi.localIP());
-  Serial.println();
-
-  // Kết nối với Firebase
-  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
-  Firebase.reconnectWiFi(true);
-
-  // //ESPNOW
-  // // Set device as a Wi-Fi Station
-  // WiFi.mode(WIFI_STA);
-
-  // // Init ESP-NOW
-  // if (esp_now_init() != 0) {
-  //   Serial.println("Error initializing ESP-NOW");
-  //   return;
+  // // Kiểm tra kết nối WIFI
+  // while (WiFi.status() != WL_CONNECTED)
+  // {
+  //   Serial.print(".");
+  //   delay(300);
   // }
+  // Serial.println();
+  // Serial.print("Connected with IP: ");
+  // Serial.println(WiFi.localIP());
+  // Serial.println();
 
-  // // Once ESPNow is successfully Init, we will register for recv CB to
-  // // get recv packer info
-  // esp_now_register_recv_cb(OnDataRecv);
+  // // Kết nối với Firebase
+  // Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+  // Firebase.reconnectWiFi(true);
+
+  //ESPNOW
+  // Set device as a Wi-Fi Station
+  WiFi.mode(WIFI_STA);
+
+  // Init ESP-NOW
+  if (esp_now_init() != 0) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+
+  // Once ESPNow is successfully Init, we will register for recv CB to
+  // get recv packer info
 
   // Calibrate sensor for a while
   SensorCalibrate();
@@ -403,16 +443,17 @@ void setup()
   disableCore1WDT();
   disableLoopWDT();
 
-  // TASK WIFI
-  xTaskCreatePinnedToCore(
-      WifiTask, /* Task function. */
-      "Task1",  /* name of task. */
-      10000,    /* Stack size of task */
-      NULL,     /* parameter of the task */
-      20,       /* priority of the task */
-      &Task1,   /* Task handle to keep track of created task */
-      0);       /* pin task to core 0 */
-  delay(500);
+  // // TASK WIFI
+  // xTaskCreatePinnedToCore(
+  //     WifiTask, /* Task function. */
+  //     "Task1",  /* name of task. */
+  //     10000,    /* Stack size of task */
+  //     NULL,     /* parameter of the task */
+  //     20,       /* priority of the task */
+  //     &Task1,   /* Task handle to keep track of created task */
+  //     0);       /* pin task to core 0 */
+  // delay(500);
+  esp_now_register_recv_cb(OnDataRecv);
 
   // TASK 1
   xTaskCreatePinnedToCore(
@@ -424,6 +465,17 @@ void setup()
       &Task2,               /* Task handle to keep track of created task */
       1);                   /* pin task to core 1 */
   delay(500);
+
+  // TASK 3
+  // xTaskCreatePinnedToCore(
+  //     HallTask,             /* Task function. */
+  //     "Task3",              /* name of task. */
+  //     1000,                /* Stack size of task */
+  //     NULL,                 /* parameter of the task */
+  //     21, /* priority of the task */
+  //     &Task3,               /* Task handle to keep track of created task */
+  //     1);                   /* pin task to core 1 */
+  // delay(500);
 }
 
 // DONT USE THIS

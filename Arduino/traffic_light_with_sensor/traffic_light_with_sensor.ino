@@ -36,6 +36,9 @@ SemaphoreHandle_t baton;
 #define trigPin 17
 #define echoPin 16
 
+#define trigPin2 15
+#define echoPin2 13
+
 //define sound speed in cm/uS
 #define SOUND_SPEED 0.034
 #define CM_TO_INCH 0.393701
@@ -44,15 +47,13 @@ SemaphoreHandle_t baton;
 // Must match the receiver structure
 typedef struct struct_message
 {
-  int b;
-  float c;
-  bool d;
+  byte traffic_state;
 } struct_message;
 
 // Create a struct_message called myData
 struct_message myData;
 
-uint8_t broadcastAddress[] = {0xD8, 0xBF, 0xC0, 0xFA, 0x7A, 0x8E};
+uint8_t broadcastAddress[] = {0xA4, 0xE5, 0x7C, 0xD6, 0x74, 0xFC};
 
 // callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
@@ -61,24 +62,10 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
 
-unsigned char ok_flag;
-unsigned char fail_flag;
-
-unsigned short lenth_val = 0;
-unsigned char i2c_rx_buf[16];
-unsigned char dirsend_flag = 0;
-unsigned long previous_time1 = 0;
-unsigned long previous_time2 = 0;
-unsigned long previous_time3 = 0;
-unsigned long previous_time4 = 0;
-unsigned long previous_time5 = 0;
-unsigned long previous_time6 = 0;
-
 long duration;
 float distanceCm;
-float distanceInch;
-
-
+long duration2;
+float distanceCm2;
 
 int x = 0;
 byte traffic_state;
@@ -88,7 +75,7 @@ byte traffic_state;
 void setup()
 {
   Wire.begin();
-  Serial.begin(9600, SERIAL_8N1);
+  Serial.begin(9600);
   pinMode(red_pinout_1, OUTPUT);
   pinMode(yellow_pinout_1, OUTPUT);
   pinMode(green_pinout_1, OUTPUT);
@@ -98,7 +85,10 @@ void setup()
   pinMode(c_red_pinout, OUTPUT);
   pinMode(c_yellow_pinout, OUTPUT);
   pinMode(c_green_pinout, OUTPUT);
-
+  pinMode(trigPin,OUTPUT);
+  pinMode(echoPin,INPUT);
+  pinMode(trigPin2,OUTPUT);
+  pinMode(echoPin2,INPUT);
   // Set device as a Wi-Fi Station
   WiFi.mode(WIFI_STA);
 
@@ -141,16 +131,16 @@ void setup()
   digitalWrite(c_yellow_pinout,LOW);
   digitalWrite(c_green_pinout,HIGH);
 
-  // TASK WIFI
-  xTaskCreatePinnedToCore(
-      LidarTask, /* Task function. */
-      "Task1",   /* name of task. */
-      10000,     /* Stack size of task */
-      NULL,      /* parameter of the task */
-      2,         /* priority of the task */
-      &Task1,    /* Task handle to keep track of created task */
-      1);        /* pin task to core 0 */
-  delay(500);
+  // // TASK WIFI
+  // xTaskCreatePinnedToCore(
+  //     SensorTask1, /* Task function. */
+  //     "Task1",   /* name of task. */
+  //     10000,     /* Stack size of task */
+  //     NULL,      /* parameter of the task */
+  //     1,         /* priority of the task */
+  //     &Task1,    /* Task handle to keep track of created task */
+  //     1);        /* pin task to core 0 */
+  // delay(500);
 
   // TASK 1
   xTaskCreatePinnedToCore(
@@ -168,35 +158,59 @@ void setup()
       "Task3",    /* name of task. */
       10000,      /* Stack size of task */
       NULL,       /* parameter of the task */
-      0,          /* priority of the task */
+      1,          /* priority of the task */
       &Task3,     /* Task handle to keep track of created task */
       0);         /* pin task to core 0 */
   delay(500);
 }
 
-// SDA 21 SCL 22 ADDRESS 0x52
-void SensorRead(unsigned char addr, unsigned char *datbuf, unsigned char cnt)
-{
-  unsigned short result = 0;
-  // step 1: instruct sensor to read echoes
-  Wire.beginTransmission(82); // transmit to device #82 (0x52)
-  // the address specified in the datasheet is 164 (0xa4)
-  // but i2c adressing uses the high 7 bits so it's 82
-  Wire.write(byte(addr)); // sets distance data address (addr)
-  Wire.endTransmission(); // stop transmitting
-  // step 2: wait for readings to happen
-  delay(1); // datasheet suggests at least 30uS
-  // step 3: request reading from sensor
-  Wire.requestFrom(82, cnt); // request cnt bytes from slave device #82 (0x52)
-  // step 5: receive reading from sensor
-  if (cnt <= Wire.available())
-  {                          // if two bytes were received
-    *datbuf++ = Wire.read(); // receive high byte (overwrites previous reading)
-    *datbuf++ = Wire.read(); // receive low byte as lower 8 bits
-  }
+void normalLED(){
+  // red1 ON, green2 ON
+    traffic_state = 0;
+    digitalWrite(red_pinout_1, HIGH);
+    digitalWrite(yellow_pinout_1, LOW);
+    digitalWrite(green_pinout_1, LOW);
+    digitalWrite(red_pinout_2, LOW);
+    digitalWrite(yellow_pinout_2, LOW);
+    digitalWrite(green_pinout_2, HIGH);
+    Serial.println("                  TrafficTASK: traffic_state=" + String(traffic_state));
+    delay(4000);
+
+    // red1 ON, yellow2 ON
+    digitalWrite(red_pinout_1, HIGH);
+    digitalWrite(yellow_pinout_1, LOW);
+    digitalWrite(green_pinout_1, LOW);
+    digitalWrite(red_pinout_2, LOW);
+    digitalWrite(yellow_pinout_2, HIGH);
+    digitalWrite(green_pinout_2, LOW);
+    Serial.println("                  TrafficTASK: traffic_state=" + String(traffic_state));
+    delay(1000);
+
+    // green1 ON, red2 ON
+    traffic_state = 1;
+    digitalWrite(red_pinout_1, LOW);
+    digitalWrite(yellow_pinout_1, LOW);
+    digitalWrite(green_pinout_1, HIGH);
+    digitalWrite(red_pinout_2, HIGH);
+    digitalWrite(yellow_pinout_2, LOW);
+    digitalWrite(green_pinout_2, LOW);
+    Serial.println("                  TrafficTASK: traffic_state=" + String(traffic_state));
+    delay(4000);
+
+    // yellow1 ON, red2 ON
+    digitalWrite(red_pinout_1, LOW);
+    digitalWrite(yellow_pinout_1, HIGH);
+    digitalWrite(green_pinout_1, LOW);
+    digitalWrite(red_pinout_2, HIGH);
+    digitalWrite(yellow_pinout_2, LOW);
+    digitalWrite(green_pinout_2, LOW);
+    Serial.println("                  TrafficTASK: traffic_state=" + String(traffic_state));
+    delay(1000);
+
 }
 
 void specialLED(){
+  traffic_state=1;
   digitalWrite(red_pinout_1,1);
   digitalWrite(red_pinout_2,1);
   digitalWrite(yellow_pinout_1,0);
@@ -211,6 +225,7 @@ void specialLED(){
   digitalWrite(green_pinout_1,0);
   digitalWrite(green_pinout_2,0);
   delay(3000);
+  traffic_state=0;
   digitalWrite(red_pinout_1,0);
   digitalWrite(red_pinout_2,0);
   digitalWrite(yellow_pinout_1,0);
@@ -265,33 +280,26 @@ void specialLED(){
 void UltrasonicRead(){
   // Clears the trigPin
   digitalWrite(trigPin, LOW);
+  digitalWrite(trigPin2,LOW);
   delayMicroseconds(2);
   // Sets the trigPin on HIGH state for 10 micro seconds
   digitalWrite(trigPin, HIGH);
+  digitalWrite(trigPin2,HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
+  digitalWrite(trigPin2, LOW);
+
   
   // Reads the echoPin, returns the sound wave travel time in microseconds
   duration = pulseIn(echoPin, HIGH);
-  
+  duration2 = pulseIn(echoPin2,HIGH);
   // Calculate the distance
   distanceCm = duration * SOUND_SPEED/2;
-  
+  distanceCm2 = duration2 * SOUND_SPEED/2;
   // Prints the distance in the Serial Monitor
-  Serial.print("Distance (cm): ");
-  Serial.println(distanceCm);
-  delay(1000);
-}
-
-
-int ReadDistance()
-{
-  SensorRead(0x00, i2c_rx_buf, 2);
-  lenth_val = i2c_rx_buf[0];
-  lenth_val = lenth_val << 8;
-  lenth_val |= i2c_rx_buf[1];
-  delay(300);
-  return lenth_val;
+  Serial.println("                            Distance (cm): "+String(distanceCm));
+  Serial.println("                            Distance2 (cm): "+String(distanceCm2));
+  delay(200);
 }
 
 void count(int max_count)
@@ -299,8 +307,6 @@ void count(int max_count)
   for (int i = 1; i <= max_count; i++)
   {
     delay(1000);
-    Serial.println(i);
-    // Firebase.RTDB.setInt(&fbdo, "traffic/count", i);
   }
 }
 
@@ -329,7 +335,7 @@ void count(int max_count)
 // }
 
 // core 1 task1 for main function
-void LidarTask(void *pvParameters)
+void SensorTask1(void *pvParameters)
 {
   for (;;)
   {
@@ -338,10 +344,7 @@ void LidarTask(void *pvParameters)
     xSemaphoreTake(baton, portMAX_DELAY);
     xSemaphoreGive(baton);
 
-    x = ReadDistance();
-    Serial.print(x);
-    Serial.println(" mm");
-
+    UltrasonicRead();
     Serial.println("LidarTask Speed: " + String(millis() - start));
   }
 }
@@ -357,9 +360,7 @@ void ESPNowTask(void *pvParameters)
     xSemaphoreGive(baton);
 
     // Set values to send
-    myData.b = random(1, 20);
-    myData.c = 1.2;
-    myData.d = false;
+    myData.traffic_state=traffic_state;
 
     // Send message via ESP-NOW
     esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&myData, sizeof(myData));
@@ -387,49 +388,8 @@ void TrafficTask(void *pvParameters)
 
     xSemaphoreTake(baton, portMAX_DELAY);
     xSemaphoreGive(baton);
-
-    // red1 ON, green2 ON
-    traffic_state = 0;
-    digitalWrite(red_pinout_1, HIGH);
-    digitalWrite(yellow_pinout_1, LOW);
-    digitalWrite(green_pinout_1, LOW);
-    digitalWrite(red_pinout_2, LOW);
-    digitalWrite(yellow_pinout_2, LOW);
-    digitalWrite(green_pinout_2, HIGH);
-    Serial.println("                  TrafficTASK: traffic_state=" + String(traffic_state));
-    delay(4000);
-
-    // red1 ON, yellow2 ON
-    digitalWrite(red_pinout_1, HIGH);
-    digitalWrite(yellow_pinout_1, LOW);
-    digitalWrite(green_pinout_1, LOW);
-    digitalWrite(red_pinout_2, LOW);
-    digitalWrite(yellow_pinout_2, HIGH);
-    digitalWrite(green_pinout_2, LOW);
-    Serial.println("                  TrafficTASK: traffic_state=" + String(traffic_state));
-    delay(1000);
-
-    // green1 ON, red2 ON
-    traffic_state = 1;
-    digitalWrite(red_pinout_1, LOW);
-    digitalWrite(yellow_pinout_1, LOW);
-    digitalWrite(green_pinout_1, HIGH);
-    digitalWrite(red_pinout_2, HIGH);
-    digitalWrite(yellow_pinout_2, LOW);
-    digitalWrite(green_pinout_2, LOW);
-    Serial.println("                  TrafficTASK: traffic_state=" + String(traffic_state));
-    delay(4000);
-
-    // yellow1 ON, red2 ON
-    digitalWrite(red_pinout_1, LOW);
-    digitalWrite(yellow_pinout_1, HIGH);
-    digitalWrite(green_pinout_1, LOW);
-    digitalWrite(red_pinout_2, HIGH);
-    digitalWrite(yellow_pinout_2, LOW);
-    digitalWrite(green_pinout_2, LOW);
-    Serial.println("                  TrafficTASK: traffic_state=" + String(traffic_state));
-    delay(1000);
-
+    specialLED();
+    
     // Serial.println("TrafficTask Speed: " + String(millis()-start));
   }
 }

@@ -1,6 +1,6 @@
 {
-    "configuration": "xtal=80,vt=flash,exception=legacy,ssl=all,eesz=4M2M,led=2,ip=lm2f,dbg=Disabled,lvl=None____,wipe=none,baud=115200",
-    "board": "esp8266:esp8266:nodemcuv2",
-    "sketch": "WIFICrud.ino",
+    "configuration": "FlashFreq=80,UploadSpeed=921600",
+    "board": "esp32:esp32:nodemcu-32s",
+    "sketch": "MACFinder\\MACFinder.ino",
     "port": "COM3"
 }

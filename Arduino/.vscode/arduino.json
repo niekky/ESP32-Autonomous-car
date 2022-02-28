@@ -3,5 +3,5 @@
     "board": "esp32:esp32:nodemcu-32s",
     "sketch": "traffic_light_with_sensor\\traffic_light_with_sensor.ino",
     "output": "F:/output",
-    "port": "COM3"
+    "port": "COM6"
 }
