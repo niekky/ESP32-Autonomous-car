@@ -15,20 +15,21 @@ SemaphoreHandle_t baton;
 #define FIREBASE_USE_PSRAM
 
 // ID CAR
-String id_car="car_2";
+String id_car = "car_2";
 
 QTRSensors qtr;
-float kp=0, ki=0, kd=0;
+float kp = 0, ki = 0, kd = 0;
 float Setpoint, Input, Output;
-float kp_motor=0, ki_motor=0, kd_motor=0;
-int pid_output=0;
-int servo_wip=90;
-int motor_speed=0;
-int error=0;
-int previouserror=0;
-uint16_t position=0;
+float kp_motor = 0, ki_motor = 0, kd_motor = 0;
+int pid_output = 0;
+int servo_wip = 90;
+int motor_speed = 0;
+int error = 0;
+int previouserror = 0;
+uint16_t position = 0;
 
-typedef struct struct_message {
+typedef struct struct_message
+{
   int b;
   float c;
   bool d;
@@ -37,16 +38,16 @@ typedef struct struct_message {
 struct_message myData;
 
 float previous_error = 0, previous_I = 0;
-float previous_error_motor=0, previous_I_motor=0;
+float previous_error_motor = 0, previous_I_motor = 0;
 const uint8_t SensorCount = 10;
 uint16_t sensorValues[SensorCount];
 
-boolean motor_toggle=false;
+boolean motor_toggle = false;
 
 // QuickPID myPID(&Input,&Output,&Setpoint,kp,ki,kd,DIRECT);
 
 // HOST lấy từ Project Settings/Service Accounts/Firebase Admin SDK/databaseURL
-#define FIREBASE_HOST "https://nodemcu-a4907-default-rtdb.asia-southeast1.firebasedatabase.app" 
+#define FIREBASE_HOST "https://nodemcu-a4907-default-rtdb.asia-southeast1.firebasedatabase.app"
 // Auth lấy từ Project Settings/Service Accounts/Database Secrets/Secret
 #define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
 
@@ -56,17 +57,17 @@ boolean motor_toggle=false;
 #define WIFI_PASSWORD "19781902Cfc"
 
 // SERVO CONFIG
-#define SERVO_CHANNEL_0     0
-#define SERVO_TIMER_16_BIT  16
-#define SERVO_BASE_FREQ     50
-#define SERVO_PIN           21
+#define SERVO_CHANNEL_0 0
+#define SERVO_TIMER_16_BIT 16
+#define SERVO_BASE_FREQ 50
+#define SERVO_PIN 21
 // MOTOR CONFIG
-#define MOTOR_CHANNEL_0     1
-#define MOTOR_TIMER_13_BIT  16
-#define MOTOR_BASE_FREQ     8000
-#define MOTOR_PIN_ENB       13
-#define MOTOR_PIN_1         12
-#define MOTOR_PIN_2         14
+#define MOTOR_CHANNEL_0 1
+#define MOTOR_TIMER_13_BIT 16
+#define MOTOR_BASE_FREQ 8000
+#define MOTOR_PIN_ENB 13
+#define MOTOR_PIN_1 12
+#define MOTOR_PIN_2 14
 
 FirebaseData db;
 FirebaseJson json;
@@ -74,10 +75,11 @@ FirebaseJsonData result;
 FirebaseJsonArray arr;
 String jsonValues[6];
 
-void SensorCalibrate(){
+void SensorCalibrate()
+{
   // configure the sensors
   qtr.setTypeRC();
-  qtr.setSensorPins((const uint8_t[]){5, 19, 18, 17, 16, 32, 33, 25,26,27}, 10);
+  qtr.setSensorPins((const uint8_t[]){5, 19, 18, 17, 16, 32, 33, 25, 26, 27}, 10);
   pinMode(2, OUTPUT);
   digitalWrite(2, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
 
@@ -109,111 +111,149 @@ void SensorCalibrate(){
   delay(1000);
 }
 
-void readJSONFromDB(){
-    json.get(result, "/IDs/car_2");
-    result.get<FirebaseJsonArray>(arr);
-    for (size_t i = 0; i < arr.size(); i++)
-    {
-        arr.get(result, i);
-        jsonValues[i]=result.to<String>();
-    }
-    kp=jsonValues[3].toFloat();
-    ki=jsonValues[1].toFloat();
-    kd=jsonValues[0].toFloat();
-    motor_speed=jsonValues[2].toInt();
-    servo_wip=jsonValues[4].toInt();
-    arr.get(result, 5);
-    motor_toggle=result.to<bool>();
+void readJSONFromDB()
+{
+  json.get(result, "/IDs/car_2");
+  result.get<FirebaseJsonArray>(arr);
+  for (size_t i = 0; i < arr.size(); i++)
+  {
+    arr.get(result, i);
+    jsonValues[i] = result.to<String>();
+  }
+  kp = jsonValues[3].toFloat();
+  ki = jsonValues[1].toFloat();
+  kd = jsonValues[0].toFloat();
+  motor_speed = jsonValues[2].toInt();
+  servo_wip = jsonValues[4].toInt();
+  arr.get(result, 5);
+  motor_toggle = result.to<bool>();
 }
 
 void SetServoPos(float pos)
 {
-    uint32_t duty = (((pos/180.0)
-              *2000)/20000.0*65536.0) + 1634;
-         // convert 0-180 degrees to 0-65536
+  uint32_t duty = (((pos / 180.0) * 2000) / 20000.0 * 65536.0) + 1634;
+  // convert 0-180 degrees to 0-65536
 
-    ledcWrite(SERVO_CHANNEL_0,duty);
-        // set channel to pos
+  ledcWrite(SERVO_CHANNEL_0, duty);
+  // set channel to pos
 }
 
-void ServoTesting(){
-    for(int x=0;x<100;x++)
-   {
-      SetServoPos(x);
-      delay(10);
-   }
-   delay(100);
-   
+void ServoTesting()
+{
+  for (int x = 0; x < 100; x++)
+  {
+    SetServoPos(x);
+    delay(10);
+  }
+  delay(100);
 }
 
-void readFromDB(){
-    if (Firebase.getFloat(db,"IDs/"+id_car+"/P_servo")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
-        kp=(double) db.to<float>();
-      }
-    } else {
-      Serial.println(db.errorReason());
+void readFromDB()
+{
+  if (Firebase.getFloat(db, "IDs/" + id_car + "/P_servo"))
+  {
+    if (db.dataTypeEnum() == fb_esp_rtdb_data_type_float)
+    {
+      kp = (double)db.to<float>();
     }
-    if (Firebase.getFloat(db,"/IDs/"+id_car+"/D_servo")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
-        kd=(double) db.to<float>();
-      }
-    } else {
-      Serial.println(db.errorReason());
+  }
+  else
+  {
+    Serial.println(db.errorReason());
+  }
+  if (Firebase.getFloat(db, "/IDs/" + id_car + "/D_servo"))
+  {
+    if (db.dataTypeEnum() == fb_esp_rtdb_data_type_float)
+    {
+      kd = (double)db.to<float>();
     }
-    if (Firebase.getFloat(db,"/IDs/"+id_car+"/I_servo")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
-        ki=(double)db.to<float>();
-      }
-    } else {
-      Serial.println(db.errorReason());
+  }
+  else
+  {
+    Serial.println(db.errorReason());
+  }
+  if (Firebase.getFloat(db, "/IDs/" + id_car + "/I_servo"))
+  {
+    if (db.dataTypeEnum() == fb_esp_rtdb_data_type_float)
+    {
+      ki = (double)db.to<float>();
     }
-    if (Firebase.getFloat(db,"IDs/"+id_car+"/P_motor")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
-        kp_motor=db.to<float>();
-      }
-    } else {
-      Serial.println(db.errorReason());
+  }
+  else
+  {
+    Serial.println(db.errorReason());
+  }
+  if (Firebase.getFloat(db, "IDs/" + id_car + "/P_motor"))
+  {
+    if (db.dataTypeEnum() == fb_esp_rtdb_data_type_float)
+    {
+      kp_motor = db.to<float>();
     }
-    if (Firebase.getFloat(db,"/IDs/"+id_car+"/D_motor")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
-        kd_motor=db.to<float>();
-      }
-    } else {
-      Serial.println(db.errorReason());
+  }
+  else
+  {
+    Serial.println(db.errorReason());
+  }
+  if (Firebase.getFloat(db, "/IDs/" + id_car + "/D_motor"))
+  {
+    if (db.dataTypeEnum() == fb_esp_rtdb_data_type_float)
+    {
+      kd_motor = db.to<float>();
     }
-    if (Firebase.getFloat(db,"/IDs/"+id_car+"/I_float")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
-        ki_motor=db.to<float>();
-      }
-    } else {
-      Serial.println(db.errorReason());
+  }
+  else
+  {
+    Serial.println(db.errorReason());
+  }
+  if (Firebase.getFloat(db, "/IDs/" + id_car + "/I_float"))
+  {
+    if (db.dataTypeEnum() == fb_esp_rtdb_data_type_float)
+    {
+      ki_motor = db.to<float>();
     }
-    if (Firebase.getInt(db,"/IDs/"+id_car+"/Motor")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_integer){
-        motor_speed=db.to<int>();
-      }
-    } else {
-      Serial.println(db.errorReason());
+  }
+  else
+  {
+    Serial.println(db.errorReason());
+  }
+  if (Firebase.getInt(db, "/IDs/" + id_car + "/Motor"))
+  {
+    if (db.dataTypeEnum() == fb_esp_rtdb_data_type_integer)
+    {
+      motor_speed = db.to<int>();
     }
-    if (Firebase.getInt(db,"/IDs/"+id_car+"/Servo")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_integer){
-        servo_wip=db.to<int>();
-      }
-    } else {
-      Serial.println(db.errorReason());
+  }
+  else
+  {
+    Serial.println(db.errorReason());
+  }
+  if (Firebase.getInt(db, "/IDs/" + id_car + "/Servo"))
+  {
+    if (db.dataTypeEnum() == fb_esp_rtdb_data_type_integer)
+    {
+      servo_wip = db.to<int>();
     }
-    if (Firebase.getBool(db,"/IDs/"+id_car+"/Toggle")){
-      if (db.dataTypeEnum()== fb_esp_rtdb_data_type_boolean){
-        motor_toggle=db.to<bool>();
-      }
-    } else {
-      Serial.println(db.errorReason());
+  }
+  else
+  {
+    Serial.println(db.errorReason());
+  }
+  if (Firebase.getBool(db, "/IDs/" + id_car + "/Toggle"))
+  {
+    if (db.dataTypeEnum() == fb_esp_rtdb_data_type_boolean)
+    {
+      motor_toggle = db.to<bool>();
     }
+  }
+  else
+  {
+    Serial.println(db.errorReason());
+  }
 }
 
 // callback function that will be executed when data is received
-void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
+{
   memcpy(&myData, incomingData, sizeof(myData));
   Serial.print("Bytes received: ");
   Serial.println(len);
@@ -225,44 +265,50 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   Serial.println(myData.d);
   Serial.println();
 }
- 
 
 // core 0 for calling api
-void WifiTask( void * pvParameters ){
-  for(;;){
-    long start =millis();
-    xSemaphoreTake(baton,portMAX_DELAY);
+void WifiTask(void *pvParameters)
+{
+  for (;;)
+  {
+    long start = millis();
+    xSemaphoreTake(baton, portMAX_DELAY);
     xSemaphoreGive(baton);
     readFromDB();
-    Firebase.setFloat(db,"IDs/"+id_car+"_graph/PID_output",random(300));
-    Serial.println("TASKWIFI Speed: " + String(millis()-start));
+    Firebase.setFloat(db, "IDs/" + id_car + "_graph/PID_output", random(300));
+    Serial.println("TASKWIFI Speed: " + String(millis() - start));
     vTaskDelay(200);
-  } 
+  }
 }
 
 // core 1 task1 for main function
-void MainTask( void * pvParameters ){
-  for(;;){
-    long start =millis();
-    
-    xSemaphoreTake(baton,portMAX_DELAY);
+void MainTask(void *pvParameters)
+{
+  for (;;)
+  {
+    long start = millis();
+
+    xSemaphoreTake(baton, portMAX_DELAY);
     xSemaphoreGive(baton);
 
     // Drive motor
-    if (motor_toggle==true){
-        digitalWrite(MOTOR_PIN_1,0);
-        digitalWrite(MOTOR_PIN_2,1);
-        ledcWrite(MOTOR_CHANNEL_0,motor_speed);
-    } else{
-        digitalWrite(MOTOR_PIN_1,0);
-        digitalWrite(MOTOR_PIN_2,0);
-        ledcWrite(MOTOR_CHANNEL_0,0);
+    if (motor_toggle == true)
+    {
+      digitalWrite(MOTOR_PIN_1, 0);
+      digitalWrite(MOTOR_PIN_2, 1);
+      ledcWrite(MOTOR_CHANNEL_0, motor_speed);
+    }
+    else
+    {
+      digitalWrite(MOTOR_PIN_1, 0);
+      digitalWrite(MOTOR_PIN_2, 0);
+      ledcWrite(MOTOR_CHANNEL_0, 0);
     }
 
     // RAW PID FUNCTION
     position = qtr.readLineBlack(sensorValues);
-    error=3800-position;
-    pid_output = kp*error + kd*(error - previouserror);
+    error = 3800 - position;
+    pid_output = kp * error + kd * (error - previouserror);
     previouserror = error;
 
     // PID LIBRARY
@@ -271,108 +317,110 @@ void MainTask( void * pvParameters ){
     // myPID.Compute();
     // pid_output=(int) Output;
 
-    SetServoPos(max(20,min(130,servo_wip-pid_output)));
+    SetServoPos(max(20, min(130, servo_wip - pid_output)));
 
-    //ServoTesting();
+    // ServoTesting();
 
     // Chỉ uncomment nếu muốn đọc số liệu, nếu ko thì nên disable vì nó tốn thời gian excecute
     // Serial.println("P: "+String(kp)+" D: "+String(kd*10)+" I: "+String(ki));
     // Serial.println("P_motor: "+String(kp_motor)+" D_motor: "+String(kd_motor)+" I_motor: "+String(ki_motor));
     // Serial.println("Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle)+" Position: "+String(position));
     // Serial.println("TASK1 Speed: " + String(millis()-start));
-    Serial.println("Input: "+String(Input)+" Output: "+String(pid_output));
-    Serial.println("TASK1 Speed: " + String(millis()-start));
-  } 
+    Serial.println("Input: " + String(Input) + " Output: " + String(pid_output));
+    Serial.println("TASK1 Speed: " + String(millis() - start));
+  }
 }
 
-void setup(){
-    pinMode(MOTOR_PIN_1, OUTPUT);
-    pinMode(MOTOR_PIN_2, OUTPUT);
-    ledcSetup(MOTOR_CHANNEL_0, MOTOR_BASE_FREQ, MOTOR_TIMER_13_BIT);
-    ledcAttachPin(MOTOR_PIN_ENB, MOTOR_CHANNEL_0);
-    
-    ledcSetup(SERVO_CHANNEL_0, SERVO_BASE_FREQ, SERVO_TIMER_16_BIT);
-    ledcAttachPin(SERVO_PIN, SERVO_CHANNEL_0);
+void setup()
+{
+  pinMode(MOTOR_PIN_1, OUTPUT);
+  pinMode(MOTOR_PIN_2, OUTPUT);
+  ledcSetup(MOTOR_CHANNEL_0, MOTOR_BASE_FREQ, MOTOR_TIMER_13_BIT);
+  ledcAttachPin(MOTOR_PIN_ENB, MOTOR_CHANNEL_0);
 
-    // // PID LIBRARY
-    // myPID.SetMode(myPID.Control::automatic);
-    // myPID.SetTunings(kp,ki,kd);
-    // myPID.SetOutputLimits(-180,180);
-    // myPID.SetSampleTimeUs(50000);
+  ledcSetup(SERVO_CHANNEL_0, SERVO_BASE_FREQ, SERVO_TIMER_16_BIT);
+  ledcAttachPin(SERVO_PIN, SERVO_CHANNEL_0);
 
-    // Set servo default
-    SetServoPos(90);
+  // // PID LIBRARY
+  // myPID.SetMode(myPID.Control::automatic);
+  // myPID.SetTunings(kp,ki,kd);
+  // myPID.SetOutputLimits(-180,180);
+  // myPID.SetSampleTimeUs(50000);
 
-    Serial.begin(115200);
+  // Set servo default
+  SetServoPos(90);
 
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    Serial.print("Connecting to WiFi");
+  Serial.begin(115200);
 
-    // Kiểm tra kết nối WIFI
-    while (WiFi.status() != WL_CONNECTED){
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("Connecting to WiFi");
+
+  // Kiểm tra kết nối WIFI
+  while (WiFi.status() != WL_CONNECTED)
+  {
     Serial.print(".");
     delay(300);
-    }
-    Serial.println();
-    Serial.print("Connected with IP: ");
-    Serial.println(WiFi.localIP());
-    Serial.println();
+  }
+  Serial.println();
+  Serial.print("Connected with IP: ");
+  Serial.println(WiFi.localIP());
+  Serial.println();
 
-    // Kết nối với Firebase
-    Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
-    Firebase.reconnectWiFi(true);
+  // Kết nối với Firebase
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+  Firebase.reconnectWiFi(true);
 
+  // //ESPNOW
+  // // Set device as a Wi-Fi Station
+  // WiFi.mode(WIFI_STA);
 
-    // //ESPNOW 
-    // // Set device as a Wi-Fi Station
-    // WiFi.mode(WIFI_STA);
+  // // Init ESP-NOW
+  // if (esp_now_init() != 0) {
+  //   Serial.println("Error initializing ESP-NOW");
+  //   return;
+  // }
 
-    // // Init ESP-NOW
-    // if (esp_now_init() != 0) {
-    //   Serial.println("Error initializing ESP-NOW");
-    //   return;
-    // }
-    
-    // // Once ESPNow is successfully Init, we will register for recv CB to
-    // // get recv packer info
-    // esp_now_register_recv_cb(OnDataRecv);
+  // // Once ESPNow is successfully Init, we will register for recv CB to
+  // // get recv packer info
+  // esp_now_register_recv_cb(OnDataRecv);
 
-    // Calibrate sensor for a while
-    SensorCalibrate();
+  // Calibrate sensor for a while
+  SensorCalibrate();
 
-    // SEMAPHORE để share data
-    baton = xSemaphoreCreateMutex();
+  // SEMAPHORE để share data
+  baton = xSemaphoreCreateMutex();
 
-    // Disable Watch dog timer debugger (vì nó sẽ reboot nếu mạng gặp trục trặc)
-    disableCore0WDT();
-    disableCore1WDT();
-    disableLoopWDT();
+  // Disable Watch dog timer debugger (vì nó sẽ reboot nếu mạng gặp trục trặc)
+  disableCore0WDT();
+  disableCore1WDT();
+  disableLoopWDT();
 
-    //TASK WIFI
-    xTaskCreatePinnedToCore(
-                    WifiTask,   /* Task function. */
-                    "Task1",     /* name of task. */
-                    10000,       /* Stack size of task */
-                    NULL,        /* parameter of the task */
-                    20,           /* priority of the task */
-                    &Task1,      /* Task handle to keep track of created task */
-                    0);          /* pin task to core 0 */                  
-    delay(500); 
-    
-    //TASK 1
-    xTaskCreatePinnedToCore(
-                    MainTask,   /* Task function. */
-                    "Task2",     /* name of task. */
-                    10000,       /* Stack size of task */
-                    NULL,        /* parameter of the task */
-                    configMAX_PRIORITIES,           /* priority of the task */
-                    &Task2,      /* Task handle to keep track of created task */
-                    1);          /* pin task to core 1 */
-    delay(500); 
+  // TASK WIFI
+  xTaskCreatePinnedToCore(
+      WifiTask, /* Task function. */
+      "Task1",  /* name of task. */
+      10000,    /* Stack size of task */
+      NULL,     /* parameter of the task */
+      20,       /* priority of the task */
+      &Task1,   /* Task handle to keep track of created task */
+      0);       /* pin task to core 0 */
+  delay(500);
+
+  // TASK 1
+  xTaskCreatePinnedToCore(
+      MainTask,             /* Task function. */
+      "Task2",              /* name of task. */
+      10000,                /* Stack size of task */
+      NULL,                 /* parameter of the task */
+      configMAX_PRIORITIES, /* priority of the task */
+      &Task2,               /* Task handle to keep track of created task */
+      1);                   /* pin task to core 1 */
+  delay(500);
 }
 
 // DONT USE THIS
-void loop(){
-    vTaskDelete(NULL);
-    // NOTHING HERE
+void loop()
+{
+  vTaskDelete(NULL);
+  // NOTHING HERE
 }
