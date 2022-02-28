@@ -26,6 +26,7 @@ float kp_motor=0, ki_motor=0, kd_motor=0;
 int pid_output=0;
 int servo_wip=90;
 int motor_speed=0;
+int sum_err=0;
 int error=0;
 int previouserror=0;
 uint16_t position=0;
@@ -261,16 +262,17 @@ void MainTask( void * pvParameters ){
     }
 
     // RAW PID FUNCTION
-    // position = qtr.readLineBlack(sensorValues);
-    // error=3800-position;
-    // pid_output = kp*error + kd*(error - previouserror);
-    // previouserror = error;
+    position = qtr.readLineBlack(sensorValues);
+    error=4000-position;
+    pid_output = kp*error + ki*sum_err + kd*(error - previouserror);
+    sum_err+=error;
+    previouserror = error;
 
     // PID LIBRARY
-    Input = (float) position;
-    myPID.SetTunings(kp,ki,kd);
-    myPID.Compute();
-    pid_output=(int) Output;
+    // Input = (float) position;
+    // myPID.SetTunings(kp,ki,kd);
+    // myPID.Compute();
+    // pid_output=(int) Output;
 
     SetServoPos(max(20,min(130,servo_wip-pid_output)));
 
