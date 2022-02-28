@@ -28,6 +28,7 @@ int servo_wip=90;
 int motor_speed=0;
 int sum_err=0;
 int error=0;
+int count_err=0;
 int previouserror=0;
 uint16_t position=0;
 
@@ -148,6 +149,12 @@ void ServoTesting(){
    
 }
 
+void windup(){
+  sum_err+=error;
+  count_err+=1;
+  if (count_err>5) count_err=0;
+}
+
 void readFromDB(){
     if (Firebase.getFloat(db,"IDs/"+id_car+"/P_servo")){
       if (db.dataTypeEnum()== fb_esp_rtdb_data_type_float){
@@ -265,7 +272,7 @@ void MainTask( void * pvParameters ){
     position = qtr.readLineBlack(sensorValues);
     error=4000-position;
     pid_output = kp*error + ki*sum_err + kd*(error - previouserror);
-    sum_err+=error;
+    windup(sum_err);
     previouserror = error;
 
     // PID LIBRARY
