@@ -118,8 +118,8 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
 {
   memcpy(&myData, incomingData, sizeof(myData));
   digitalWrite(2,1);
-  Serial.print("Bytes received: ");
-  Serial.println(len);
+  // Serial.print("Bytes received: ");
+  // Serial.println(len);
   Serial.print("Traffic State: ");
   Serial.println(myData.traffic_state);
   while (myData.traffic_state==1 && hall==0){
@@ -214,7 +214,6 @@ void loop(){
   // Serial.println("P: "+String(kp)+" D: "+String(kd*10)+" I: "+String(ki));
   // Serial.println("P_motor: "+String(kp_motor)+" D_motor: "+String(kd_motor)+" I_motor: "+String(ki_motor));
   // Serial.println("Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle)+" Position: "+String(position));
-  Serial.println("TASK1 Speed: " + String(millis()-start));
   Serial.println("Input: " + String(Input) + " Output: " + String(pid_output));
   Serial.println("                    Hall read: "+String(hall));
   Serial.println("TASK1 Speed: " + String(millis() - start));
