@@ -19,12 +19,12 @@ SemaphoreHandle_t baton;
 String id_car = "car_2";
 
 QTRSensors qtr;
-float kp=0.02, ki=0, kd=0.016;
+float kp=0, ki=0, kd=0;
 float Setpoint=4000, Input, Output;
-float kp_motor=0.5, ki_motor=0, kd_motor=0.2;
+float kp_motor, ki_motor, kd_motor;
 int pid_output=0;
-int servo_wip=75;
-int motor_speed=20000;
+int servo_wip;
+int motor_speed;
 int sum_err=0;
 int error=0;
 int count_err=0;
@@ -44,9 +44,7 @@ float previous_error_motor = 0, previous_I_motor = 0;
 const uint8_t SensorCount = 10;
 uint16_t sensorValues[SensorCount];
 
-// boolean motor_toggle = false;
-boolean motor_toggle = true;
-
+boolean motor_toggle = false;
 
 // QuickPID myPID(&Input,&Output,&Setpoint,kp,ki,kd,DIRECT);
 
@@ -115,24 +113,6 @@ void SensorCalibrate()
   Serial.println();
   Serial.println();
   delay(1000);
-}
-
-void readJSONFromDB()
-{
-  json.get(result, "/IDs/car_2");
-  result.get<FirebaseJsonArray>(arr);
-  for (size_t i = 0; i < arr.size(); i++)
-  {
-    arr.get(result, i);
-    jsonValues[i] = result.to<String>();
-  }
-  kp = jsonValues[3].toFloat();
-  ki = jsonValues[1].toFloat();
-  kd = jsonValues[0].toFloat();
-  motor_speed = jsonValues[2].toInt();
-  servo_wip = jsonValues[4].toInt();
-  arr.get(result, 5);
-  motor_toggle = result.to<bool>();
 }
 
 void SetServoPos(float pos)
@@ -312,7 +292,6 @@ void HallTask(void *pvParameters)
   }
 }
 
-
 // core 1 task1 for main function
 void MainTask(void *pvParameters)
 {
@@ -401,36 +380,25 @@ void setup()
 
   Serial.begin(115200);
 
-  // WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  // Serial.print("Connecting to WiFi");
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("Connecting to WiFi");
 
-  // // Kiểm tra kết nối WIFI
-  // while (WiFi.status() != WL_CONNECTED)
-  // {
-  //   Serial.print(".");
-  //   delay(300);
-  // }
-  // Serial.println();
-  // Serial.print("Connected with IP: ");
-  // Serial.println(WiFi.localIP());
-  // Serial.println();
-
-  // // Kết nối với Firebase
-  // Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
-  // Firebase.reconnectWiFi(true);
-
-  //ESPNOW
-  // Set device as a Wi-Fi Station
-  WiFi.mode(WIFI_STA);
-
-  // Init ESP-NOW
-  if (esp_now_init() != 0) {
-    Serial.println("Error initializing ESP-NOW");
-    return;
+  // Kiểm tra kết nối WIFI
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print(".");
+    delay(300);
   }
+  Serial.println();
+  Serial.print("Connected with IP: ");
+  Serial.println(WiFi.localIP());
+  Serial.println();
 
-  // Once ESPNow is successfully Init, we will register for recv CB to
-  // get recv packer info
+  // Kết nối với Firebase
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+  Firebase.reconnectWiFi(true);
+
+  
 
   // Calibrate sensor for a while
   SensorCalibrate();
@@ -443,17 +411,16 @@ void setup()
   disableCore1WDT();
   disableLoopWDT();
 
-  // // TASK WIFI
-  // xTaskCreatePinnedToCore(
-  //     WifiTask, /* Task function. */
-  //     "Task1",  /* name of task. */
-  //     10000,    /* Stack size of task */
-  //     NULL,     /* parameter of the task */
-  //     20,       /* priority of the task */
-  //     &Task1,   /* Task handle to keep track of created task */
-  //     0);       /* pin task to core 0 */
-  // delay(500);
-  esp_now_register_recv_cb(OnDataRecv);
+  // TASK WIFI
+  xTaskCreatePinnedToCore(
+      WifiTask, /* Task function. */
+      "Task1",  /* name of task. */
+      10000,    /* Stack size of task */
+      NULL,     /* parameter of the task */
+      20,       /* priority of the task */
+      &Task1,   /* Task handle to keep track of created task */
+      0);       /* pin task to core 0 */
+  delay(500);
 
   // TASK 1
   xTaskCreatePinnedToCore(
