@@ -3,7 +3,8 @@
 TaskHandle_t Task1;
 TaskHandle_t Task2;
 TaskHandle_t Task3;
-
+TaskHandle_t Task4;
+TaskHandle_t Task5;
 // Semaphore để share data
 SemaphoreHandle_t baton;
 
@@ -162,6 +163,26 @@ void setup()
       &Task3,     /* Task handle to keep track of created task */
       0);         /* pin task to core 0 */
   delay(500);
+
+  // xTaskCreatePinnedToCore(
+  //     STraffic1Task, /* Task function. */
+  //     "Task4",    /* name of task. */
+  //     1000,      /* Stack size of task */
+  //     NULL,       /* parameter of the task */
+  //     1,          /* priority of the task */
+  //     &Task4,     /* Task handle to keep track of created task */
+  //     1);         /* pin task to core 0 */
+  // delay(500);
+
+  // xTaskCreatePinnedToCore(
+  //     STraffic2Task, /* Task function. */
+  //     "Task5",    /* name of task. */
+  //     1000,      /* Stack size of task */
+  //     NULL,       /* parameter of the task */
+  //     1,          /* priority of the task */
+  //     &Task5,     /* Task handle to keep track of created task */
+  //     1);         /* pin task to core 0 */
+  // delay(500);
 }
 
 void normalLED(){
@@ -310,30 +331,6 @@ void count(int max_count)
   }
 }
 
-// void red(){
-//   // Firebase.RTDB.setString(&fbdo, "traffic/light", "red");
-//   traffic_state=0;
-//   digitalWrite(red_pinout_1,HIGH);
-//   count(10);
-//   digitalWrite(red_pinout,LOW);
-// }
-
-// void yellow(){
-//   // Firebase.RTDB.setString(&fbdo, "traffic/light", "yellow");
-//   traffic_state=1;
-//   digitalWrite(yellow_pinout,HIGH);
-//   count(3);
-//   digitalWrite(yellow_pinout,LOW);
-// }
-
-// void green(){
-//   // Firebase.RTDB.setString(&fbdo, "traffic/light", "green");
-//   traffic_state=2;
-//   digitalWrite(green_pinout,HIGH);
-//   count(7);
-//   digitalWrite(green_pinout,LOW);
-// }
-
 // core 1 task1 for main function
 void SensorTask1(void *pvParameters)
 {
@@ -393,6 +390,105 @@ void TrafficTask(void *pvParameters)
     // Serial.println("TrafficTask Speed: " + String(millis()-start));
   }
 }
+
+// core 1 task1 for main function
+void STraffic1Task(void *pvParameters)
+{
+  for (;;)
+  {
+    // long start =millis();
+
+    xSemaphoreTake(baton, portMAX_DELAY);
+    xSemaphoreGive(baton);
+    traffic_state=1;
+    digitalWrite(red_pinout_1,0);
+    digitalWrite(yellow_pinout_1,1);
+    digitalWrite(green_pinout_1,0);
+    delay(2000);
+    digitalWrite(red_pinout_1,1);
+    digitalWrite(yellow_pinout_1,0);
+    digitalWrite(green_pinout_1,0);
+    delay(7000);
+    digitalWrite(red_pinout_1,1);
+    digitalWrite(yellow_pinout_1,1);
+    digitalWrite(green_pinout_1,0);
+    delay(5000);
+    traffic_state=0;
+    digitalWrite(red_pinout_1,0);
+    digitalWrite(yellow_pinout_1,0);
+    digitalWrite(green_pinout_1,1);
+    delay(10000);
+    // Blink every 500ms in 2s
+    digitalWrite(red_pinout_1,0);
+    digitalWrite(yellow_pinout_1,0);
+    digitalWrite(green_pinout_1,1);
+    delay(500);
+    digitalWrite(red_pinout_1,0);
+    digitalWrite(yellow_pinout_1,0);
+    digitalWrite(green_pinout_1,0);
+    delay(500);
+    digitalWrite(red_pinout_1,0);
+    digitalWrite(yellow_pinout_1,0);
+    digitalWrite(green_pinout_1,1);
+    delay(500);
+    digitalWrite(red_pinout_1,0);
+    digitalWrite(yellow_pinout_1,0);
+    digitalWrite(green_pinout_1,0);
+    delay(500);
+    traffic_state=0;
+    digitalWrite(red_pinout_1,0);
+    digitalWrite(yellow_pinout_1,1);
+    digitalWrite(green_pinout_1,0);
+    delay(1000);
+    // Serial.println("TrafficTask Speed: " + String(millis()-start));
+  }
+}
+
+// core 1 task1 for main function
+void STraffic2Task(void *pvParameters)
+{
+  for (;;)
+  {
+    // long start =millis();
+
+    digitalWrite(red_pinout_2,0);
+    digitalWrite(yellow_pinout_2,0);
+    digitalWrite(green_pinout_2,1);
+    delay(1000);
+    // Blink 500ms in 2s
+    digitalWrite(red_pinout_2,0);
+    digitalWrite(yellow_pinout_2,0);
+    digitalWrite(green_pinout_2,0);
+    delay(500);
+    digitalWrite(red_pinout_2,0);
+    digitalWrite(yellow_pinout_2,0);
+    digitalWrite(green_pinout_2,1);
+    delay(500);
+    digitalWrite(red_pinout_2,0);
+    digitalWrite(yellow_pinout_2,0);
+    digitalWrite(green_pinout_2,0);
+    delay(500);
+    digitalWrite(red_pinout_2,0);
+    digitalWrite(yellow_pinout_2,0);
+    digitalWrite(green_pinout_2,1);
+    delay(500);
+    digitalWrite(red_pinout_2,0);
+    digitalWrite(yellow_pinout_2,1);
+    digitalWrite(green_pinout_2,0);
+    delay(3000);
+    digitalWrite(red_pinout_2,1);
+    digitalWrite(yellow_pinout_2,0);
+    digitalWrite(green_pinout_2,0);
+    delay(7000);
+    digitalWrite(red_pinout_2,1);
+    digitalWrite(yellow_pinout_2,1);
+    digitalWrite(green_pinout_2,0);
+    delay(3000);
+
+    // Serial.println("TrafficTask Speed: " + String(millis()-start));
+  }
+}
+
 
 void loop()
 {
