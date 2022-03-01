@@ -4,7 +4,7 @@ TaskHandle_t Task2;
 TaskHandle_t Task3;
 
 // Semaphore để share data
-SemaphoreHandle_t baton;
+SemaphoreHandle_t baton;P
 
 // WIFI LIBRARY
 #include "FirebaseESP32.h"
@@ -13,7 +13,7 @@ SemaphoreHandle_t baton;
 #include <esp_now.h>
 #include "esp_task_wdt.h"
 // #include "QuickPID.h"
-#define FIREBASE_USE_PSRAM
+#define FIREBASE_USE_PSRAM\
 
 // ID CAR
 String id_car = "car_2";
@@ -280,10 +280,11 @@ void WifiTask(void *pvParameters)
   for (;;)
   {
     long start = millis();
-    xSemaphoreTake(baton, portMAX_DELAY);
-    xSemaphoreGive(baton);
-    readFromDB();
-    Firebase.setFloat(db, "IDs/" + id_car + "_graph/PID_output", random(300));
+    // xSemaphoreTake(baton, portMAX_DELAY);
+    // xSemaphoreGive(baton);
+    // readFromDB();
+    // Firebase.setFloat(db, "IDs/" + id_car + "_graph/PID_output", random(300));
+    esp_now_register_recv_cb(OnDataRecv);
     Serial.println("TASKWIFI Speed: " + String(millis() - start));
     vTaskDelay(200);
   }
@@ -443,17 +444,16 @@ void setup()
   disableCore1WDT();
   disableLoopWDT();
 
-  // // TASK WIFI
-  // xTaskCreatePinnedToCore(
-  //     WifiTask, /* Task function. */
-  //     "Task1",  /* name of task. */
-  //     10000,    /* Stack size of task */
-  //     NULL,     /* parameter of the task */
-  //     20,       /* priority of the task */
-  //     &Task1,   /* Task handle to keep track of created task */
-  //     0);       /* pin task to core 0 */
-  // delay(500);
-  esp_now_register_recv_cb(OnDataRecv);
+  // TASK WIFI
+  xTaskCreatePinnedToCore(
+      WifiTask, /* Task function. */
+      "Task1",  /* name of task. */
+      10000,    /* Stack size of task */
+      NULL,     /* parameter of the task */
+      20,       /* priority of the task */
+      &Task1,   /* Task handle to keep track of created task */
+      0);       /* pin task to core 0 */
+  delay(500);
 
   // TASK 1
   xTaskCreatePinnedToCore(
