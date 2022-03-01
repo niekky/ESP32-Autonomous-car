@@ -99,90 +99,6 @@ void SensorCalibrate(){
   Serial.println();
   delay(1000);
 }
-void SensorCalibrate1(){
-  // configure the sensors
-  qtr1.setTypeRC();
-  qtr1.setSensorPins((const uint8_t[]){21, 19, 18, 17, 16 }, 5); // 27 , 26,25,33,32,16,17,18,19,21
-  pinMode(2, OUTPUT);
-  digitalWrite(2, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
-
-  // 2.5 ms RC read timeout (default) * 10 reads per calibrate() call
-  // = ~25 ms per calibrate() call.
-  // Call calibrate() 400 times to make calibration take about 10 seconds.
-  for (uint16_t i = 0; i < 400; i++)
-  {
-    qtr1.calibrate();
-  }
-  digitalWrite(2, LOW); // turn off Arduino's LED to indicate we are through with calibration
-
-  // print the calibration minimum values measured when emitters were on
-  for (uint8_t i = 0; i < SensorCount; i++)
-  {
-    Serial.print(qtr1.calibrationOn.minimum[i]);
-    Serial.print(' ');
-  }
-  Serial.println();
-
-  // print the calibration maximum values measured when emitters were on
-  for (uint8_t i = 0; i < SensorCount; i++)
-  {
-    Serial.print(qtr1.calibrationOn.maximum[i]);
-    Serial.print(' ');
-  }
-  Serial.println();
-  Serial.println();
-  delay(1000);
-}
-void SensorCalibrate2(){
-  // configure the sensors
-  qtr2.setTypeRC();
-  qtr2.setSensorPins((const uint8_t[]){32,33,27,26,25 }, 5); // 27 , 26,25,33,32,16,17,18,19,21
-  pinMode(2, OUTPUT);
-  digitalWrite(2, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
-
-  // 2.5 ms RC read timeout (default) * 10 reads per calibrate() call
-  // = ~25 ms per calibrate() call.
-  // Call calibrate() 400 times to make calibration take about 10 seconds.
-  for (uint16_t i = 0; i < 400; i++)
-  {
-    qtr2.calibrate();
-  }
-  digitalWrite(2, LOW); // turn off Arduino's LED to indicate we are through with calibration
-
-  // print the calibration minimum values measured when emitters were on
-  for (uint8_t i = 0; i < SensorCount; i++)
-  {
-    Serial.print(qtr2.calibrationOn.minimum[i]);
-    Serial.print(' ');
-  }
-  Serial.println();
-
-  // print the calibration maximum values measured when emitters were on
-  for (uint8_t i = 0; i < SensorCount; i++)
-  {
-    Serial.print(qtr2.calibrationOn.maximum[i]);
-    Serial.print(' ');
-  }
-  Serial.println();
-  Serial.println();
-  delay(1000);
-}
-void readJSONFromDB(){
-    json.get(result, "/IDs/car_2");
-    result.get<FirebaseJsonArray>(arr);
-    for (size_t i = 0; i < arr.size(); i++)
-    {
-        arr.get(result, i);
-        jsonValues[i]=result.to<String>();
-    }
-    kp=jsonValues[3].toFloat();
-    ki=jsonValues[1].toFloat();
-    kd=jsonValues[0].toFloat();
-    motor_speed=jsonValues[2].toInt();
-    servo_wip=jsonValues[4].toInt();
-    arr.get(result, 5);
-    motor_toggle=result.to<bool>();
-}
 
 void SetServoPos(float pos)
 {
@@ -296,36 +212,7 @@ void modify(int k)
   a[5] = k ; 
 }
 
-long long integral()
-{
-  long long sum = 0 ;
-  for (int i = 0 ; i < na ;i++) sum += a[i];
-  return sum ;
-}
-void HallTask(void *pvParameters)
-{
-  for (;;)
-  {
-    long start = millis();
-    xSemaphoreTake(baton, portMAX_DELAY);
-    xSemaphoreGive(baton);
 
-    hall=digitalRead(39);
-
-    if (hall==0){
-      magnetic++;
-      if (magnetic % 2 != 0)
-      {
-      prevspeed = motor_speed;
-      motor_speed = 0;
-      }
-      else motor_speed = prevspeed;
-    }
-
-    Serial.println("            Hall: "+String(hall) + "dem : " + String(magnetic) + "Speed : " + String(motor_speed)) ;
-  //  Serial.println("TASKWIFI Speed: " + String(millis() - start));
-  }
-}
 
 // core 1 task1 for main function
 void MainTask( void * pvParameters ){
@@ -346,7 +233,7 @@ void MainTask( void * pvParameters ){
     
     xSemaphoreTake(baton,portMAX_DELAY);
     xSemaphoreGive(baton);
-    int  hall=digitalRead(39);
+ /*   int  hall=digitalRead(39);
     if (hall==0){
       magnetic++;
       while (hall==0) 
@@ -365,10 +252,10 @@ void MainTask( void * pvParameters ){
       }
       else 
       {
-        mi = 40;
+        mi = 30;
         ma =110;
         motor_speed_run = motor_speed;
-      }
+      }*/
     // Drive motor
     if (motor_toggle==true){
         digitalWrite(MOTOR_PIN_1,1);
@@ -388,13 +275,18 @@ void MainTask( void * pvParameters ){
     if (abs(error) > 2400 ) 
     {
       pid_output = kp_motor*error + ki_motor*sum_error + kd_motor*( error - previouserror);
-      motor_speed_run = max((double)motor_speed-5000,motor_speed - abs(2.8*error + 0.0008*(error - previouserror))); 
+      motor_speed_run = max((double)motor_speed-3000,motor_speed - abs(2.8*error + 0.0008*(error - previouserror))); 
+      SetServoPos(max(30,min(130,servo_wip+pid_output)));
     }
-    else  pid_output = kp*error + ki*sum_error + kd*(error - previouserror);
+    else  
+    {
+      pid_output = kp*error + ki*sum_error + kd*(error - previouserror);
+       SetServoPos(max(30,min(100,servo_wip+pid_output)));
+    }
     previouserror = error;
 
     // Drive SERVO DEFAULT
-   SetServoPos(max(mi,min(ma,servo_wip+pid_output)));
+  // SetServoPos(max(mi,min(ma,servo_wip+pid_output)));
     // khi có SERVO WITH PID
     // ledcWrite(SERVO_CHANNEL_0,max(255,min(800,servo_wip+pid_output)));
   //  ServoTesting();
