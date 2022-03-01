@@ -4,7 +4,7 @@ TaskHandle_t Task2;
 TaskHandle_t Task3;
 
 // Semaphore để share data
-SemaphoreHandle_t baton;P
+SemaphoreHandle_t baton;
 
 // WIFI LIBRARY
 #include "FirebaseESP32.h"
@@ -126,12 +126,12 @@ void SetServoPos(float pos)
 
 void ServoTesting()
 {
-  for (int x = 0; x < 100; x++)
+  for (int x = 0; x < 128; x++)
   {
     SetServoPos(x);
     delay(10);
   }
-  delay(100);
+  delay(500);
 }
 
 void windup(){
@@ -238,21 +238,6 @@ void readFromDB(){
   }
 }
 
-// callback function that will be executed when data is received
-void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
-{
-  memcpy(&myData, incomingData, sizeof(myData));
-  Serial.print("Bytes received: ");
-  Serial.println(len);
-  Serial.print("Traffic State: ");
-  Serial.println(myData.traffic_state);
-  while (myData.traffic_state==1 && hall==0){
-    hall=0;
-    digitalWrite(MOTOR_PIN_1, 0);
-    digitalWrite(MOTOR_PIN_2, 0);
-    ledcWrite(MOTOR_CHANNEL_0, 0);
-  }
-}
 
 // core 0 for calling api
 void WifiTask(void *pvParameters)
@@ -260,11 +245,10 @@ void WifiTask(void *pvParameters)
   for (;;)
   {
     long start = millis();
-    // xSemaphoreTake(baton, portMAX_DELAY);
-    // xSemaphoreGive(baton);
-    // readFromDB();
+    xSemaphoreTake(baton, portMAX_DELAY);
+    xSemaphoreGive(baton);
+    readFromDB();
     // Firebase.setFloat(db, "IDs/" + id_car + "_graph/PID_output", random(300));
-    esp_now_register_recv_cb(OnDataRecv);
     Serial.println("TASKWIFI Speed: " + String(millis() - start));
     vTaskDelay(200);
   }
@@ -300,8 +284,8 @@ void MainTask(void *pvParameters)
   {
     long start = millis();
 
-    // xSemaphoreTake(baton, portMAX_DELAY);
-    // xSemaphoreGive(baton);
+    xSemaphoreTake(baton, portMAX_DELAY);
+    xSemaphoreGive(baton);
 
     // Drive motor
     if (motor_toggle == true)
@@ -333,7 +317,7 @@ void MainTask(void *pvParameters)
     // myPID.Compute();
     // pid_output=(int) Output;
 
-    SetServoPos(max(20, min(130, servo_wip - pid_output)));
+    SetServoPos(max(0, min(125, servo_wip - pid_output)));
 
     hall=digitalRead(HALL_PIN);
 

@@ -8,12 +8,19 @@
 #define FIREBASE_USE_PSRAM
 
 QTRSensors qtr;
+// float kp=0.02, ki=0, kd=0.016;
+// float Setpoint=4000, Input, Output;
+// float kp_motor=0.5, ki_motor=0, kd_motor=0.2;
+// int pid_output=0;
+// int servo_wip=75;
+// int motor_speed=20000;
+
 float kp=0.02, ki=0, kd=0.016;
 float Setpoint=4000, Input, Output;
-float kp_motor=0.5, ki_motor=0, kd_motor=0.2;
+float kp_motor=0.6, ki_motor=0, kd_motor=0.2;
 int pid_output=0;
 int servo_wip=75;
-int motor_speed=20000;
+int motor_speed=26000;
 
 int sum_err=0;
 int error=0;
@@ -40,6 +47,7 @@ uint16_t sensorValues[SensorCount];
 boolean motor_toggle = true;
 
 long previousTime=0;
+long previousTime2=0;
 
 // QuickPID myPID(&Input,&Output,&Setpoint,kp,ki,kd,DIRECT);
 
@@ -105,7 +113,7 @@ void SetServoPos(float pos)
 
 void ServoTesting()
 {
-  for (int x = 0; x < 100; x++)
+  for (int x = 0; x < 125; x++)
   {
     SetServoPos(x);
     delay(10);
@@ -186,14 +194,17 @@ void setup()
 void readHallPlus(){
   hall=digitalRead(HALL_PIN);
   if (hall==0){
-    magnetic++;
+    if (millis()-previousTime2>=5000){
+      magnetic++;
+      previousTime2=millis();
+    }
     hallEn=true;
     previousTime=millis();
-    while (hall==0){
-      hall=digitalRead(HALL_PIN);
-      hallEn=true;
-      previousTime=millis();
-    }
+    // while (hall==0){
+    //   hall=digitalRead(HALL_PIN);
+    //   hallEn=true;
+    //   previousTime=millis();
+    // }
   }
 }
 
@@ -206,7 +217,7 @@ void loop(){
   digitalWrite(MOTOR_PIN_2, 1);
   ledcWrite(MOTOR_CHANNEL_0, motor_speed);
 
-  if (millis()-previousTime>=500){
+  if (millis()-previousTime>=1000){
     hallEn=false;
     previousTime=millis();
   }
@@ -255,7 +266,7 @@ void loop(){
   // myPID.Compute();
   // pid_output=(int) Output;
 
-  SetServoPos(max(30, min(130, servo_wip - pid_output)));
+  SetServoPos(max(0, min(125, servo_wip - pid_output)));
   Serial.println("Mag: "+String(magnetic));
   Serial.println("            Hall: "+String(hallEn));
   Serial.println("Traffic_State: "+String(traffic_state));
