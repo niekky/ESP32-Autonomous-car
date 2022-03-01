@@ -143,16 +143,16 @@ void setup()
   //     1);        /* pin task to core 0 */
   // delay(500);
 
-  // TASK 1
-  xTaskCreatePinnedToCore(
-      TrafficTask, /* Task function. */
-      "Task2",     /* name of task. */
-      1000,        /* Stack size of task */
-      NULL,        /* parameter of the task */
-      1,           /* priority of the task */
-      &Task2,      /* Task handle to keep track of created task */
-      1);          /* pin task to core 1 */
-  delay(500);
+  // // TASK 1
+  // xTaskCreatePinnedToCore(
+  //     TrafficTask, /* Task function. */
+  //     "Task2",     /* name of task. */
+  //     1000,        /* Stack size of task */
+  //     NULL,        /* parameter of the task */
+  //     1,           /* priority of the task */
+  //     &Task2,      /* Task handle to keep track of created task */
+  //     1);          /* pin task to core 1 */
+  // delay(500);
 
   xTaskCreatePinnedToCore(
       ESPNowTask, /* Task function. */
@@ -164,25 +164,25 @@ void setup()
       0);         /* pin task to core 0 */
   delay(500);
 
-  // xTaskCreatePinnedToCore(
-  //     STraffic1Task, /* Task function. */
-  //     "Task4",    /* name of task. */
-  //     1000,      /* Stack size of task */
-  //     NULL,       /* parameter of the task */
-  //     1,          /* priority of the task */
-  //     &Task4,     /* Task handle to keep track of created task */
-  //     1);         /* pin task to core 0 */
-  // delay(500);
+  xTaskCreatePinnedToCore(
+      STraffic1Task, /* Task function. */
+      "Task4",    /* name of task. */
+      1000,      /* Stack size of task */
+      NULL,       /* parameter of the task */
+      1,          /* priority of the task */
+      &Task4,     /* Task handle to keep track of created task */
+      1);         /* pin task to core 0 */
+  delay(500);
 
-  // xTaskCreatePinnedToCore(
-  //     STraffic2Task, /* Task function. */
-  //     "Task5",    /* name of task. */
-  //     1000,      /* Stack size of task */
-  //     NULL,       /* parameter of the task */
-  //     1,          /* priority of the task */
-  //     &Task5,     /* Task handle to keep track of created task */
-  //     1);         /* pin task to core 0 */
-  // delay(500);
+  xTaskCreatePinnedToCore(
+      STraffic2Task, /* Task function. */
+      "Task5",    /* name of task. */
+      1000,      /* Stack size of task */
+      NULL,       /* parameter of the task */
+      1,          /* priority of the task */
+      &Task5,     /* Task handle to keep track of created task */
+      1);         /* pin task to core 0 */
+  delay(500);
 }
 
 void normalLED(){
@@ -412,7 +412,7 @@ void STraffic1Task(void *pvParameters)
     digitalWrite(red_pinout_1,1);
     digitalWrite(yellow_pinout_1,1);
     digitalWrite(green_pinout_1,0);
-    delay(5000);
+    delay(3000);
     traffic_state=0;
     digitalWrite(red_pinout_1,0);
     digitalWrite(yellow_pinout_1,0);
@@ -421,20 +421,23 @@ void STraffic1Task(void *pvParameters)
     // Blink every 500ms in 2s
     digitalWrite(red_pinout_1,0);
     digitalWrite(yellow_pinout_1,0);
-    digitalWrite(green_pinout_1,1);
-    delay(500);
-    digitalWrite(red_pinout_1,0);
-    digitalWrite(yellow_pinout_1,0);
-    digitalWrite(green_pinout_1,0);
-    delay(500);
-    digitalWrite(red_pinout_1,0);
-    digitalWrite(yellow_pinout_1,0);
-    digitalWrite(green_pinout_1,1);
-    delay(500);
-    digitalWrite(red_pinout_1,0);
-    digitalWrite(yellow_pinout_1,0);
-    digitalWrite(green_pinout_1,0);
-    delay(500);
+    green_blink(green_pinout_1);
+    // digitalWrite(red_pinout_1,0);
+    // digitalWrite(yellow_pinout_1,0);
+    // digitalWrite(green_pinout_1,1);
+    // delay(500);
+    // digitalWrite(red_pinout_1,0);
+    // digitalWrite(yellow_pinout_1,0);
+    // digitalWrite(green_pinout_1,0);
+    // delay(500);
+    // digitalWrite(red_pinout_1,0);
+    // digitalWrite(yellow_pinout_1,0);
+    // digitalWrite(green_pinout_1,1);
+    // delay(500);
+    // digitalWrite(red_pinout_1,0);
+    // digitalWrite(yellow_pinout_1,0);
+    // digitalWrite(green_pinout_1,0);
+    // delay(500);
     traffic_state=0;
     digitalWrite(red_pinout_1,0);
     digitalWrite(yellow_pinout_1,1);
@@ -444,34 +447,47 @@ void STraffic1Task(void *pvParameters)
   }
 }
 
+void green_blink(int pinout){
+  int g_initialize=0;
+  for (int i=0;i<10;i++){
+    if (g_initialize==0){
+      g_initialize=1;
+    } else g_initialize=0;
+    digitalWrite(pinout,g_initialize);
+    delay(200);
+  }
+}
+
 // core 1 task1 for main function
 void STraffic2Task(void *pvParameters)
 {
   for (;;)
   {
     // long start =millis();
-
     digitalWrite(red_pinout_2,0);
     digitalWrite(yellow_pinout_2,0);
     digitalWrite(green_pinout_2,1);
-    delay(1000);
-    // Blink 500ms in 2s
+    delay(10000);
+    // Blink 10 times in 2s
     digitalWrite(red_pinout_2,0);
     digitalWrite(yellow_pinout_2,0);
-    digitalWrite(green_pinout_2,0);
-    delay(500);
-    digitalWrite(red_pinout_2,0);
-    digitalWrite(yellow_pinout_2,0);
-    digitalWrite(green_pinout_2,1);
-    delay(500);
-    digitalWrite(red_pinout_2,0);
-    digitalWrite(yellow_pinout_2,0);
-    digitalWrite(green_pinout_2,0);
-    delay(500);
-    digitalWrite(red_pinout_2,0);
-    digitalWrite(yellow_pinout_2,0);
-    digitalWrite(green_pinout_2,1);
-    delay(500);
+    green_blink(green_pinout_2);
+    // digitalWrite(red_pinout_2,0);
+    // digitalWrite(yellow_pinout_2,0);
+    // digitalWrite(green_pinout_2,0);
+    // delay(500);
+    // digitalWrite(red_pinout_2,0);
+    // digitalWrite(yellow_pinout_2,0);
+    // digitalWrite(green_pinout_2,1);
+    // delay(500);
+    // digitalWrite(red_pinout_2,0);
+    // digitalWrite(yellow_pinout_2,0);
+    // digitalWrite(green_pinout_2,0);
+    // delay(500);
+    // digitalWrite(red_pinout_2,0);
+    // digitalWrite(yellow_pinout_2,0);
+    // digitalWrite(green_pinout_2,1);
+    // delay(500);
     digitalWrite(red_pinout_2,0);
     digitalWrite(yellow_pinout_2,1);
     digitalWrite(green_pinout_2,0);

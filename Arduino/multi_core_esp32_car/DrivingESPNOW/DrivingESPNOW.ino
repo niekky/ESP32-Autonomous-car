@@ -2,6 +2,8 @@
 #include <WiFi.h>
 #include <QTRSensors.h>
 #include <esp_now.h>
+#include "esp_task_wdt.h"
+
 // #include "QuickPID.h"
 #define FIREBASE_USE_PSRAM
 
@@ -18,7 +20,10 @@ int error=0;
 int count_err=0;
 int previouserror=0;
 int hall;
+byte magnetic=0;
+bool hallEn;
 uint16_t position=0;
+byte traffic_state;
 
 typedef struct struct_message
 {
@@ -34,6 +39,7 @@ uint16_t sensorValues[SensorCount];
 
 boolean motor_toggle = true;
 
+long previousTime=0;
 
 // QuickPID myPID(&Input,&Output,&Setpoint,kp,ki,kd,DIRECT);
 
@@ -120,14 +126,16 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
   digitalWrite(2,1);
   // Serial.print("Bytes received: ");
   // Serial.println(len);
-  Serial.print("Traffic State: ");
-  Serial.println(myData.traffic_state);
-  while (myData.traffic_state==1 && hall==0){
-    hall=0;
-    digitalWrite(MOTOR_PIN_1, 0);
-    digitalWrite(MOTOR_PIN_2, 0);
-    ledcWrite(MOTOR_CHANNEL_0, 0);
-  }
+  // Serial.print("Traffic State: ");
+  // Serial.println(myData.traffic_state);
+  traffic_state=myData.traffic_state;
+  // while (myData.traffic_state==1 && hallEn==true){
+  //   digitalWrite(MOTOR_PIN_1, 0);
+  //   digitalWrite(MOTOR_PIN_2, 0);
+  //   ledcWrite(MOTOR_CHANNEL_0, 0);
+  // }
+  
+  
 }
 
 void setup()
@@ -165,11 +173,29 @@ void setup()
   // Calibrate sensor for a while
   SensorCalibrate();
 
+  // Disable Watch dog timer debugger (vì nó sẽ reboot nếu mạng gặp trục trặc)
+  disableCore0WDT();
+  disableCore1WDT();
+  disableLoopWDT();
+
   // Once ESPNow is successfully Init, we will register for recv CB to
   // get recv packer info
   esp_now_register_recv_cb(OnDataRecv);
 }
 
+void readHallPlus(){
+  hall=digitalRead(HALL_PIN);
+  if (hall==0){
+    magnetic++;
+    hallEn=true;
+    previousTime=millis();
+    while (hall==0){
+      hall=digitalRead(HALL_PIN);
+      hallEn=true;
+      previousTime=millis();
+    }
+  }
+}
 
 void loop(){
   long start = millis();
@@ -180,8 +206,41 @@ void loop(){
   digitalWrite(MOTOR_PIN_2, 1);
   ledcWrite(MOTOR_CHANNEL_0, motor_speed);
 
+  if (millis()-previousTime>=500){
+    hallEn=false;
+    previousTime=millis();
+  }
+
   // Read Hall sensor
   hall=digitalRead(HALL_PIN);
+  if (hall==0){
+    hallEn=true;
+  }
+  readHallPlus();
+
+  while (traffic_state==1 && magnetic%2==1 && hallEn==true){
+    digitalWrite(MOTOR_PIN_1, 0);
+    digitalWrite(MOTOR_PIN_2, 0);
+    ledcWrite(MOTOR_CHANNEL_0,0); 
+    previousTime=millis();
+  }
+  
+  while (traffic_state==0 && magnetic%2==0 && hallEn==true){
+    digitalWrite(MOTOR_PIN_1, 0);
+    digitalWrite(MOTOR_PIN_2, 0);
+    ledcWrite(MOTOR_CHANNEL_0,0);
+    previousTime=millis();
+  }
+
+  // while (traffic_state==1 && hallEn==true){
+  //   digitalWrite(MOTOR_PIN_1, 0);
+  //   digitalWrite(MOTOR_PIN_2, 0);
+  //   ledcWrite(MOTOR_CHANNEL_0,0);
+  //   if (traffic_state==0){
+  //     hallEn=false;
+  //     break;
+  //   }
+  // }
 
   // RAW PID FUNCTION
   position = qtr.readLineBlack(sensorValues);
@@ -196,25 +255,17 @@ void loop(){
   // myPID.Compute();
   // pid_output=(int) Output;
 
-  SetServoPos(max(20, min(130, servo_wip - pid_output)));
-
-
-  if (hall==0){
-    digitalWrite(MOTOR_PIN_1, 0);
-    digitalWrite(MOTOR_PIN_2, 0);
-    ledcWrite(MOTOR_CHANNEL_0, 0);
-    delay(5000);
-  }
-
-  Serial.println("            Hall: "+String(hall));
-
+  SetServoPos(max(30, min(130, servo_wip - pid_output)));
+  Serial.println("Mag: "+String(magnetic));
+  Serial.println("            Hall: "+String(hallEn));
+  Serial.println("Traffic_State: "+String(traffic_state));
   // ServoTesting();
 
   // Chỉ uncomment nếu muốn đọc số liệu, nếu ko thì nên disable vì nó tốn thời gian excecute
   // Serial.println("P: "+String(kp)+" D: "+String(kd*10)+" I: "+String(ki));
   // Serial.println("P_motor: "+String(kp_motor)+" D_motor: "+String(kd_motor)+" I_motor: "+String(ki_motor));
   // Serial.println("Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle)+" Position: "+String(position));
-  Serial.println("Input: " + String(Input) + " Output: " + String(pid_output));
-  Serial.println("                    Hall read: "+String(hall));
+  // Serial.println("Input: " + String(Input) + " Output: " + String(pid_output));
+  // Serial.println("                    Hall read: "+String(hall));
   Serial.println("TASK1 Speed: " + String(millis() - start));
 }
