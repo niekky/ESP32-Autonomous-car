@@ -1,7 +1,7 @@
 {
     "configuration": "FlashFreq=80,UploadSpeed=921600",
     "board": "esp32:esp32:nodemcu-32s",
-    "sketch": "multi_core_esp32_car\\car_2\\driving.ino",
+    "sketch": "multi_core_esp32_car\\DrivingESPNOW\\DrivingESPNOW.ino",
     "output": "F:/output",
     "port": "COM3"
 }

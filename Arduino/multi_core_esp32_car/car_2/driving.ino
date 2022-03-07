@@ -40,7 +40,7 @@ typedef struct struct_message
 struct_message myData;
 
 float previous_error = 0, previous_I = 0;
-float previous_error_motor = 0, previous_I_motor = 0;
+float previous_error_motor = 0, previous_I_motor = 0, error_motor=0, pid_output_motor=0;
 const uint8_t SensorCount = 10;
 uint16_t sensorValues[SensorCount];
 
@@ -54,9 +54,9 @@ boolean motor_toggle = false;
 #define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
 
 // WIFI_SSID: Tên WIFI
-#define WIFI_SSID "SS A20 FREE"
+#define WIFI_SSID "Flap"
 // WIFI_PASSWORD: Tên pass của WIFI
-#define WIFI_PASSWORD "19781902Cfc"
+#define WIFI_PASSWORD "1812flapflapfoo"
 
 // SERVO CONFIG
 #define SERVO_CHANNEL_0 0
@@ -287,12 +287,14 @@ void MainTask(void *pvParameters)
     xSemaphoreTake(baton, portMAX_DELAY);
     xSemaphoreGive(baton);
 
+    int motor_speed_run = max(5000,motor_speed - (int) abs(pid_output_motor)); 
+
     // Drive motor
     if (motor_toggle == true)
     {
       digitalWrite(MOTOR_PIN_1, 0);
       digitalWrite(MOTOR_PIN_2, 1);
-      ledcWrite(MOTOR_CHANNEL_0, motor_speed);
+      ledcWrite(MOTOR_CHANNEL_0, motor_speed_run);
     }
     else
     {
@@ -303,21 +305,24 @@ void MainTask(void *pvParameters)
 
     // Read Hall sensor
     int hall=digitalRead(HALL_PIN);
-
+    int ki_int = (int) ki_motor;
     // RAW PID FUNCTION
     position = qtr.readLineBlack(sensorValues);
     error=4000-position;
-    pid_output = kp*error + ki*sum_err + kd*(error - previouserror);
-    windup();
+    pid_output = kp*error + kd*(error - previouserror);
+    //Serial.println(position);
+    // windup();
     previouserror = error;
-
+    error_motor=75-(servo_wip-pid_output);
+    pid_output_motor=kp_motor*error_motor + kd_motor*(error_motor-previous_error_motor);
+    previous_error_motor=error_motor;
     // PID LIBRARY
     // Input = (float) position;
     // myPID.SetTunings(kp,ki,kd);
     // myPID.Compute();
     // pid_output=(int) Output;
 
-    SetServoPos(max(0, min(125, servo_wip - pid_output)));
+    SetServoPos(max(0, min(110, servo_wip - pid_output)));
 
     hall=digitalRead(HALL_PIN);
 
@@ -327,9 +332,6 @@ void MainTask(void *pvParameters)
       ledcWrite(MOTOR_CHANNEL_0, 0);
       delay(5000);
     }
-
-    Serial.println("            Hall: "+String(hall));
-
     // ServoTesting();
 
     // Chỉ uncomment nếu muốn đọc số liệu, nếu ko thì nên disable vì nó tốn thời gian excecute
@@ -337,9 +339,9 @@ void MainTask(void *pvParameters)
     // Serial.println("P_motor: "+String(kp_motor)+" D_motor: "+String(kd_motor)+" I_motor: "+String(ki_motor));
     // Serial.println("Motor: "+String(motor_speed)+" Servo: "+String(servo_wip)+" Toggle: "+String(motor_toggle)+" Position: "+String(position));
     // Serial.println("TASK1 Speed: " + String(millis()-start));
-    Serial.println("Input: " + String(Input) + " Output: " + String(pid_output));
-    Serial.println("                    Hall read: "+String(hall));
-    Serial.println("TASK1 Speed: " + String(millis() - start));
+    // Serial.println("Input: " + String(Input) + " Output: " + String(pid_output) +" Pos: "+String(position));
+    // Serial.println("                    Hall read: "+String(hall));
+    // Serial.println("TASK1 Speed: " + String(millis() - start));
   }
 }
 

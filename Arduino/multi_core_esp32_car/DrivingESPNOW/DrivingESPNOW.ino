@@ -15,12 +15,12 @@ QTRSensors qtr;
 // int servo_wip=75;
 // int motor_speed=20000;
 
-float kp=0.02, ki=0, kd=0.016;
+float kp=0.018, ki=0, kd=0.01;
 float Setpoint=4000, Input, Output;
 float kp_motor=0.6, ki_motor=0, kd_motor=0.2;
 int pid_output=0;
 int servo_wip=75;
-int motor_speed=26000;
+int motor_speed=30000;
 
 int sum_err=0;
 int error=0;
@@ -30,7 +30,7 @@ int hall;
 byte magnetic=0;
 bool hallEn;
 uint16_t position=0;
-byte traffic_state;
+byte traffic_state=2;
 
 typedef struct struct_message
 {
@@ -213,10 +213,12 @@ void loop(){
   digitalWrite(2,0);
 
   // Drive motor
-  digitalWrite(MOTOR_PIN_1, 0);
-  digitalWrite(MOTOR_PIN_2, 1);
-  ledcWrite(MOTOR_CHANNEL_0, motor_speed);
-
+  if (traffic_state!=2){
+    digitalWrite(MOTOR_PIN_1, 0);
+    digitalWrite(MOTOR_PIN_2, 1);
+    ledcWrite(MOTOR_CHANNEL_0, motor_speed);
+  }
+  
   if (millis()-previousTime>=1000){
     hallEn=false;
     previousTime=millis();
@@ -266,7 +268,7 @@ void loop(){
   // myPID.Compute();
   // pid_output=(int) Output;
 
-  SetServoPos(max(0, min(125, servo_wip - pid_output)));
+  SetServoPos(max(0, min(108, servo_wip - pid_output)));
   Serial.println("Mag: "+String(magnetic));
   Serial.println("            Hall: "+String(hallEn));
   Serial.println("Traffic_State: "+String(traffic_state));

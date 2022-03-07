@@ -100,6 +100,23 @@ void setup()
     return;
   }
 
+  
+  baton = xSemaphoreCreateMutex();
+
+  // Disable Watch dog timer debugger (vì nó sẽ reboot nếu mạng gặp trục trặc)
+  disableCore0WDT();
+  disableCore1WDT();
+  disableLoopWDT();
+
+  delay(5000);
+  digitalWrite(c_red_pinout,HIGH);
+  delay(1000);
+  digitalWrite(c_red_pinout,LOW);
+  digitalWrite(c_yellow_pinout,HIGH);
+  delay(1000);
+  digitalWrite(c_yellow_pinout,LOW);
+  digitalWrite(c_green_pinout,HIGH);
+
   // Once ESPNow is successfully Init, we will register for Send CB to
   // get the status of Trasnmitted packet
   esp_now_register_send_cb(OnDataSent);
@@ -117,20 +134,6 @@ void setup()
     return;
   }
 
-  baton = xSemaphoreCreateMutex();
-
-  // Disable Watch dog timer debugger (vì nó sẽ reboot nếu mạng gặp trục trặc)
-  disableCore0WDT();
-  disableCore1WDT();
-  disableLoopWDT();
-
-  digitalWrite(c_red_pinout,HIGH);
-  delay(1000);
-  digitalWrite(c_red_pinout,LOW);
-  digitalWrite(c_yellow_pinout,HIGH);
-  delay(1000);
-  digitalWrite(c_yellow_pinout,LOW);
-  digitalWrite(c_green_pinout,HIGH);
 
   // // TASK WIFI
   // xTaskCreatePinnedToCore(
