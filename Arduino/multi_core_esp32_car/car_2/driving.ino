@@ -46,6 +46,8 @@ uint16_t sensorValues[SensorCount];
 
 boolean motor_toggle = false;
 
+long timeStop;
+
 // QuickPID myPID(&Input,&Output,&Setpoint,kp,ki,kd,DIRECT);
 
 // HOST lấy từ Project Settings/Service Accounts/Firebase Admin SDK/databaseURL
@@ -304,34 +306,26 @@ void MainTask(void *pvParameters)
     }
 
     // Read Hall sensor
-    int hall=digitalRead(HALL_PIN);
     int ki_int = (int) ki_motor;
     // RAW PID FUNCTION
     position = qtr.readLineBlack(sensorValues);
-    error=4000-position;
+    error=servo_wip-position;
     pid_output = kp*error + kd*(error - previouserror);
     //Serial.println(position);
     // windup();
     previouserror = error;
-    error_motor=75-(servo_wip-pid_output);
+    error_motor=75-(75-pid_output);
     pid_output_motor=kp_motor*error_motor + kd_motor*(error_motor-previous_error_motor);
     previous_error_motor=error_motor;
     // PID LIBRARY
-    // Input = (float) position;
-    // myPID.SetTunings(kp,ki,kd);
+    // Input = (float) position;    // myPID.SetTunings(kp,ki,kd);
     // myPID.Compute();
     // pid_output=(int) Output;
 
-    SetServoPos(max(0, min(110, servo_wip - pid_output)));
+    SetServoPos(max(0, min(108, 75 - pid_output)));
 
     hall=digitalRead(HALL_PIN);
 
-    if (hall==0){
-      digitalWrite(MOTOR_PIN_1, 0);
-      digitalWrite(MOTOR_PIN_2, 0);
-      ledcWrite(MOTOR_CHANNEL_0, 0);
-      delay(5000);
-    }
     // ServoTesting();
 
     // Chỉ uncomment nếu muốn đọc số liệu, nếu ko thì nên disable vì nó tốn thời gian excecute
@@ -349,7 +343,6 @@ void setup()
 {
   pinMode(MOTOR_PIN_1, OUTPUT);
   pinMode(MOTOR_PIN_2, OUTPUT);
-  pinMode(HALL_PIN,INPUT);
   ledcSetup(MOTOR_CHANNEL_0, MOTOR_BASE_FREQ, MOTOR_TIMER_13_BIT);
   ledcAttachPin(MOTOR_PIN_ENB, MOTOR_CHANNEL_0);
 
@@ -397,6 +390,8 @@ void setup()
   disableCore0WDT();
   disableCore1WDT();
   disableLoopWDT();
+
+  timeStop=millis();
 
   // TASK WIFI
   xTaskCreatePinnedToCore(

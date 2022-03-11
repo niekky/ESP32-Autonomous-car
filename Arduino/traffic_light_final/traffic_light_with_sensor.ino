@@ -19,8 +19,8 @@ SemaphoreHandle_t baton;
 #define FIREBASE_HOST "https://nodemcu-a4907-default-rtdb.asia-southeast1.firebasedatabase.app"
 #define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
 
-#define WIFI_SSID "SS A20 FREE"
-#define WIFI_PASSWORD "19781902Cfc"
+#define WIFI_SSID "LHPzE_MeetingHall"
+#define WIFI_PASSWORD ""
 
 #define red_pinout_1 5
 #define yellow_pinout_1 18

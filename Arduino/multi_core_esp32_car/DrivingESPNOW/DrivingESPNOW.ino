@@ -15,12 +15,14 @@ QTRSensors qtr;
 // int servo_wip=75;
 // int motor_speed=20000;
 
-float kp=0.018, ki=0, kd=0.01;
+float kp=0.009, ki=0, kd=0.012;
 float Setpoint=4000, Input, Output;
-float kp_motor=0.6, ki_motor=0, kd_motor=0.2;
+float kp_motor=0, ki_motor=0, kd_motor=0;
 int pid_output=0;
 int servo_wip=75;
 int motor_speed=30000;
+
+long timeStop;
 
 int sum_err=0;
 int error=0;
@@ -194,7 +196,7 @@ void setup()
 void readHallPlus(){
   hall=digitalRead(HALL_PIN);
   if (hall==0){
-    if (millis()-previousTime2>=5000){
+    if (millis()-previousTime2>=4000){
       magnetic++;
       previousTime2=millis();
     }
@@ -217,6 +219,7 @@ void loop(){
     digitalWrite(MOTOR_PIN_1, 0);
     digitalWrite(MOTOR_PIN_2, 1);
     ledcWrite(MOTOR_CHANNEL_0, motor_speed);
+    timeStop=millis();
   }
   
   if (millis()-previousTime>=1000){
@@ -232,6 +235,12 @@ void loop(){
   readHallPlus();
 
   while (traffic_state==1 && magnetic%2==1 && hallEn==true){
+    position = qtr.readLineBlack(sensorValues);
+    error=5000-position;
+    pid_output = kp*error + ki*sum_err + kd*(error - previouserror);
+    previouserror = error;
+    SetServoPos(max(0, min(108, servo_wip - pid_output)));  
+
     digitalWrite(MOTOR_PIN_1, 0);
     digitalWrite(MOTOR_PIN_2, 0);
     ledcWrite(MOTOR_CHANNEL_0,0); 
@@ -239,6 +248,12 @@ void loop(){
   }
   
   while (traffic_state==0 && magnetic%2==0 && hallEn==true){
+    position = qtr.readLineBlack(sensorValues);
+    error=5000-position;
+    pid_output = kp*error + ki*sum_err + kd*(error - previouserror);
+    previouserror = error;
+    SetServoPos(max(0, min(108, servo_wip - pid_output)));  
+
     digitalWrite(MOTOR_PIN_1, 0);
     digitalWrite(MOTOR_PIN_2, 0);
     ledcWrite(MOTOR_CHANNEL_0,0);
@@ -257,18 +272,19 @@ void loop(){
 
   // RAW PID FUNCTION
   position = qtr.readLineBlack(sensorValues);
-  error=4000-position;
+  error=5000-position;
   pid_output = kp*error + ki*sum_err + kd*(error - previouserror);
-  windup();
   previouserror = error;
-
+  
   // PID LIBRARY
   // Input = (float) position;
   // myPID.SetTunings(kp,ki,kd);
   // myPID.Compute();
   // pid_output=(int) Output;
-
-  SetServoPos(max(0, min(108, servo_wip - pid_output)));
+  // if (millis()-timeStop>=5000){
+  //   SetServoPos(max(0, min(108, servo_wip - pid_output)));  
+  // } else SetServoPos(max(50, min(90, servo_wip - pid_output)));
+  SetServoPos(max(0, min(108, servo_wip - pid_output)));  
   Serial.println("Mag: "+String(magnetic));
   Serial.println("            Hall: "+String(hallEn));
   Serial.println("Traffic_State: "+String(traffic_state));
