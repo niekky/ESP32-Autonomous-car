@@ -69,7 +69,7 @@ We use 2s lipo battery to power our motor. Also, another lithium-ion battery is 
   Our Lithium-ion battery
 </p>
 
-We don't think using 2s lipo battery for everything is a good idea because that will make ESP32 reboot itself due to current drop caused by motor and servo.
+We don't think using 2s lipo battery for both motor and ESP32 is a good idea because that will make ESP32 reboot itself due to current drop caused by motor and servo.
 
 ### V/Steering mechanism
 Ackerman steering mechanism is used as a way to make a car as realistic as possible.
@@ -90,7 +90,7 @@ Proportional - Integral - Derivative is one of the most common control loop mech
   PID controller
 </p>
 
-Tuning is required a lot to be stable. We only tune P and D since I is quite hard to implement and control. We had to tune it every time because PID configs will not work properly if motor speed changes. We haven't found the way to make motor speed static yet since it totally depends on battery.
+Tuning is required a lot to be stable. We only tune P and D since I is quite hard to implement and control. We had to tune it every time because PID configuration will not work properly if motor speed changes. We haven't found the way to make motor speed static yet since it totally depends on battery.
 
 <p align="center">
   <img src="https://i.imgur.com/boVIYXH.gif" width="800">
@@ -99,7 +99,7 @@ Tuning is required a lot to be stable. We only tune P and D since I is quite har
   Bad tuning example
 </p>
 
-Tuning is dull and time-consuming. If we want to change a config, we have to upload code again, which takes around 2 minutes, and doing that a lot of time will take forever. Therefore, we create a website especially for tuning. With that, tuning is a lot faster and we don't need to upload code again.
+Tuning is dull and time-consuming. If we want to change a configuration, we have to upload code again, which takes around 2 minutes, and doing that a lot of time will take forever. Therefore, we create a website especially for tuning. With that, tuning is a lot faster and we don't need to upload code again.
 
 <p align="center">
   <img src="https://i.imgur.com/vuwY05H.png" width="700">
@@ -132,7 +132,7 @@ More info about ESPNOW: https://randomnerdtutorials.com/esp-now-esp32-arduino-id
 </p>
 
 However, there are still many problems that haven't been fixed yet:
-* Motor speed is not always the same, which means we have to tune PID config it every time to adapt to the line.
+* Motor speed is not always the same, which means we have to tune PID configuration it every time to adapt to the line.
 * The car has high possibility to move out of the line after a 15-minute run.
 * We just only use simple PD control, we haven't used I yet. That is why the car is shaky sometimes.
 
