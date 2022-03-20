@@ -8,19 +8,10 @@ TaskHandle_t Task5;
 // Semaphore để share data
 SemaphoreHandle_t baton;
 
-#include "FirebaseESP32.h"
 #include <WiFi.h>
 #include "esp_task_wdt.h"
 #include <esp_now.h>
 #include <Wire.h>
-
-#define FIREBASE_USE_PSRAM
-
-#define FIREBASE_HOST "https://nodemcu-a4907-default-rtdb.asia-southeast1.firebasedatabase.app"
-#define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
-
-#define WIFI_SSID "LHPzE_MeetingHall"
-#define WIFI_PASSWORD ""
 
 #define red_pinout_1 5
 #define yellow_pinout_1 18

@@ -12,8 +12,7 @@ SemaphoreHandle_t baton;
 #include <QTRSensors.h>
 #include <esp_now.h>
 #include "esp_task_wdt.h"
-// #include "QuickPID.h"
-#define FIREBASE_USE_PSRAM\
+#define FIREBASE_USE_PSRAM
 
 // ID CAR
 String id_car = "car_2";
@@ -48,17 +47,15 @@ boolean motor_toggle = false;
 
 long timeStop;
 
-// QuickPID myPID(&Input,&Output,&Setpoint,kp,ki,kd,DIRECT);
-
 // HOST lấy từ Project Settings/Service Accounts/Firebase Admin SDK/databaseURL
-#define FIREBASE_HOST "https://nodemcu-a4907-default-rtdb.asia-southeast1.firebasedatabase.app"
+#define FIREBASE_HOST "FIREBASEHOST"
 // Auth lấy từ Project Settings/Service Accounts/Database Secrets/Secret
-#define FIREBASE_AUTH "frB74idkfdayCS44bsuY0a3WLY59PZtJrxvTUMnD"
+#define FIREBASE_AUTH "FIREBASEAUTH"
 
 // WIFI_SSID: Tên WIFI
-#define WIFI_SSID "Flap"
+#define WIFI_SSID "WIFI_ID"
 // WIFI_PASSWORD: Tên pass của WIFI
-#define WIFI_PASSWORD "1812flapflapfoo"
+#define WIFI_PASSWORD "WIFI_PASSWORD"
 
 // SERVO CONFIG
 #define SERVO_CHANNEL_0 0
@@ -317,10 +314,6 @@ void MainTask(void *pvParameters)
     error_motor=75-(75-pid_output);
     pid_output_motor=kp_motor*error_motor + kd_motor*(error_motor-previous_error_motor);
     previous_error_motor=error_motor;
-    // PID LIBRARY
-    // Input = (float) position;    // myPID.SetTunings(kp,ki,kd);
-    // myPID.Compute();
-    // pid_output=(int) Output;
 
     SetServoPos(max(0, min(108, 75 - pid_output)));
 
@@ -349,12 +342,6 @@ void setup()
   ledcSetup(SERVO_CHANNEL_0, SERVO_BASE_FREQ, SERVO_TIMER_16_BIT);
   ledcAttachPin(SERVO_PIN, SERVO_CHANNEL_0);
 
-  // // PID LIBRARY
-  // myPID.SetMode(myPID.Control::automatic);
-  // myPID.SetTunings(kp,ki,kd);
-  // myPID.SetOutputLimits(-180,180);
-  // myPID.SetSampleTimeUs(50000);
-
   // Set servo default
   SetServoPos(90);
 
@@ -377,8 +364,6 @@ void setup()
   // Kết nối với Firebase
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
   Firebase.reconnectWiFi(true);
-
-  
 
   // Calibrate sensor for a while
   SensorCalibrate();

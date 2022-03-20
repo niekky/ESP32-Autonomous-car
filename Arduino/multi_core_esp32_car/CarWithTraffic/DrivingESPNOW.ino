@@ -4,9 +4,6 @@
 #include <esp_now.h>
 #include "esp_task_wdt.h"
 
-// #include "QuickPID.h"
-#define FIREBASE_USE_PSRAM
-
 QTRSensors qtr;
 // float kp=0.02, ki=0, kd=0.016;
 // float Setpoint=4000, Input, Output;
@@ -134,18 +131,7 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
 {
   memcpy(&myData, incomingData, sizeof(myData));
   digitalWrite(2,1);
-  // Serial.print("Bytes received: ");
-  // Serial.println(len);
-  // Serial.print("Traffic State: ");
-  // Serial.println(myData.traffic_state);
   traffic_state=myData.traffic_state;
-  // while (myData.traffic_state==1 && hallEn==true){
-  //   digitalWrite(MOTOR_PIN_1, 0);
-  //   digitalWrite(MOTOR_PIN_2, 0);
-  //   ledcWrite(MOTOR_CHANNEL_0, 0);
-  // }
-  
-  
 }
 
 void setup()
@@ -158,12 +144,6 @@ void setup()
 
   ledcSetup(SERVO_CHANNEL_0, SERVO_BASE_FREQ, SERVO_TIMER_16_BIT);
   ledcAttachPin(SERVO_PIN, SERVO_CHANNEL_0);
-
-  // // PID LIBRARY
-  // myPID.SetMode(myPID.Control::automatic);
-  // myPID.SetTunings(kp,ki,kd);
-  // myPID.SetOutputLimits(-180,180);
-  // myPID.SetSampleTimeUs(50000);
 
   // Set servo default
   SetServoPos(90);
@@ -202,11 +182,6 @@ void readHallPlus(){
     }
     hallEn=true;
     previousTime=millis();
-    // while (hall==0){
-    //   hall=digitalRead(HALL_PIN);
-    //   hallEn=true;
-    //   previousTime=millis();
-    // }
   }
 }
 
@@ -260,30 +235,12 @@ void loop(){
     previousTime=millis();
   }
 
-  // while (traffic_state==1 && hallEn==true){
-  //   digitalWrite(MOTOR_PIN_1, 0);
-  //   digitalWrite(MOTOR_PIN_2, 0);
-  //   ledcWrite(MOTOR_CHANNEL_0,0);
-  //   if (traffic_state==0){
-  //     hallEn=false;
-  //     break;
-  //   }
-  // }
-
   // RAW PID FUNCTION
   position = qtr.readLineBlack(sensorValues);
   error=5000-position;
   pid_output = kp*error + ki*sum_err + kd*(error - previouserror);
   previouserror = error;
   
-  // PID LIBRARY
-  // Input = (float) position;
-  // myPID.SetTunings(kp,ki,kd);
-  // myPID.Compute();
-  // pid_output=(int) Output;
-  // if (millis()-timeStop>=5000){
-  //   SetServoPos(max(0, min(108, servo_wip - pid_output)));  
-  // } else SetServoPos(max(50, min(90, servo_wip - pid_output)));
   SetServoPos(max(0, min(108, servo_wip - pid_output)));  
   Serial.println("Mag: "+String(magnetic));
   Serial.println("            Hall: "+String(hallEn));
