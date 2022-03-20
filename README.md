@@ -1,5 +1,6 @@
 # ESP32 Autonomous car
 Autonomous car that follows traffic rules using PID and ESP32.
+
 *Robotraffic Careful Driving Winner 3rd Place 2022*
 
 <p align="center">
@@ -71,7 +72,9 @@ We use 2s lipo battery to power our motor. Also, another lithium-ion battery is 
 We don't think using 2s lipo battery for everything is a good idea because that will make ESP32 reboot itself due to current drop caused by motor and servo.
 
 ### V/Steering mechanism
-Ackerman steering mechanism is used as a way to make a car as realistic as possible. And another obvious reason is that the contest makes us do that.
+Ackerman steering mechanism is used as a way to make a car as realistic as possible.
+
+In this case, our servo range is from 0 to 110 out of 180, otherwise the servo will be stuck and damaged.
 
 <p align="center">
   <img src="https://i.imgur.com/GE1Bgo7.png" width="700">
@@ -81,7 +84,7 @@ Ackerman steering mechanism is used as a way to make a car as realistic as possi
 Proportional - Integral - Derivative is one of the most common control loop mechanisms. PID will output feedback from a setpoint and with that value, we will control servo in a way that our car moves automatically on line. In this case, we use line sensor values as inputs. Our setpoint is a line sensor's value when the car is moving straight on line (which is around 4000). Once calculated, the outputs will be fed to servo and control the direction of a car.
 
 <p align="center">
-  <img src="https://www.researchgate.net/profile/Sagar-Patel-47/publication/316709017/figure/fig1/AS:742091319681024@1553939766084/PID-Block-Diagram-PID-stands-for-Proportional-Integral-Derivative-control-A-PID.ppm" width="500">
+  <img src="https://www.researchgate.net/profile/Sagar-Patel-47/publication/316709017/figure/fig1/AS:742091319681024@1553939766084/PID-Block-Diagram-PID-stands-for-Proportional-Integral-Derivative-control-A-PID.ppm" width="500" height="230">
 </p>
 <p align="center">
   PID controller
@@ -100,6 +103,9 @@ Tuning is dull and time-consuming. If we want to change a config, we have to upl
 
 <p align="center">
   <img src="https://i.imgur.com/vuwY05H.png" width="700">
+</p>
+<p align="center">
+  Our website
 </p>
 
 ### VII/Communicate with traffic lights
