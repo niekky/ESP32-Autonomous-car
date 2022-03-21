@@ -8,14 +8,14 @@ import { getDatabase, ref, get, child, set } from "https://www.gstatic.com/fireb
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyA7-H8J9JW2x4IEn0t3l79JYnWNZD_Z9hM",
-  authDomain: "nodemcu-a4907.firebaseapp.com",
-  databaseURL: "https://nodemcu-a4907-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "nodemcu-a4907",
-  storageBucket: "nodemcu-a4907.appspot.com",
+  apiKey: "AIzaSyA7-H8J9JW2x4IEn0t3l79JYnWNZD_Z0xx",
+  authDomain: "nodemcu-aXXXX.firebaseapp.com",
+  databaseURL: "https://nodemcu-aXXXX-default-rtdb.asia-southeastX.firebasedatabase.app",
+  projectId: "nodemcu-aXXXX",
+  storageBucket: "nodemcu-aXXXX.appspot.com",
   messagingSenderId: "1064805756238",
-  appId: "1:1064805756238:web:6bd517bea7950607eec21f",
-  measurementId: "G-F91FR6SJV3"
+  appId: "1:1064805756XXX:web:6bd517bea7950607eecxxf",
+  measurementId: "G-F91FR6SXXX"
 };
 
 // Init values
