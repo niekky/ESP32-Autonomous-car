@@ -81,7 +81,7 @@ In this case, our servo range is from 0 to 110 out of 180, otherwise the servo w
 </p>
 
 ### VI/PID
-Proportional - Integral - Derivative is one of the most common control loop mechanisms. PID will output feedback from a setpoint and with that value, we will control servo in a way that our car moves automatically on line. In this case, we use line sensor values as inputs. Our setpoint is a line sensor's value when the car is moving straight on line (which is around 4000). Once calculated, the outputs will be fed to servo and control the direction of a car.
+Proportional - Integral - Derivative is one of the most common control loop mechanisms. PID will output feedback from a setpoint and with that value, we will control servo in a way that our car moves automatically on track. In this case, we use line sensor values as inputs. Our setpoint is a line sensor's value when the car is moving straight on track (which is around 4000). Once calculated, the outputs will be fed to servo and control the direction of a car.
 
 <p align="center">
   <img src="https://www.researchgate.net/profile/Sagar-Patel-47/publication/316709017/figure/fig1/AS:742091319681024@1553939766084/PID-Block-Diagram-PID-stands-for-Proportional-Integral-Derivative-control-A-PID.ppm" width="500" height="230">
