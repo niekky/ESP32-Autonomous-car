@@ -10,7 +10,7 @@ Autonomous car that follows traffic rules using PID and ESP32.
 
 ## Autonomous car:
 ### I/Microcontroller
-ESP32 is a microcontroller manufactured by Epressif that has built-in WiFi, dual-core. In contrast to Arduino, ESP32 has way better performance and it's incredibly faster.
+ESP32 is a microcontroller manufactured by Epressif that has built-in WiFi, dual-core. In contrast to Arduino, ESP32 has way better performance.
 
 More info about ESP32: https://www.espressif.com/en/products/socs/esp32
 
@@ -41,7 +41,7 @@ Our motor doesn't require much power so a basic typical motor driver like L298n 
 </p>
 
 ### III/Line follower sensor
-Typical line follower sensors in the market, such as TCRT5000 or CNY70, only outputs 0 or 1 instead of continuous value and that is a big disadvantage since PID (PID explanation below) needs a continuous value. Therefore, we used QTR-5RC sensors made by Polulu. QTR-5RC range is from 0 to 5000 (our case is 10000 since we use 2 sensors combined) which makes it perfect for PID.
+Typical line follower sensors in the market, such as TCRT5000 or CNY70, only outputs binary numbers instead of continuous value and that is a big disadvantage since PID (PID explanation below) needs a continuous value. Therefore, we used QTR-5RC sensors made by Polulu. QTR-5RC range is from 0 to 5000 (our case is 10000 since we use 2 sensors combined) which makes it perfect for PID.
 
 <p align="center">
   <img src="https://i.imgur.com/Js82a7t.png" width="700">
