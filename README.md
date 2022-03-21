@@ -53,7 +53,7 @@ Typical line follower sensors in the market, such as TCRT5000 or CNY70, only out
 More info about QTR sensors: https://www.pololu.com/category/123/pololu-qtr-reflectance-sensors
 
 ### IV/Battery
-We use 2s lipo battery to power our motor. Also, another lithium-ion battery is used to power ESP32.
+We use 2s lipo battery to power our motor and lithium-ion battery to power ESP32.
 
 <p align="center">
   <img src="https://i.imgur.com/4Qxe6Xr.png" width="700">
@@ -99,7 +99,7 @@ Tuning is required a lot to be stable. We only tune P and D since I is quite har
   Bad tuning example
 </p>
 
-Tuning is dull and time-consuming. If we want to change a configuration, we have to upload code again, which takes around 2 minutes, and doing that a lot of time will take forever. Therefore, we create a website especially for tuning. With that, tuning is a lot faster and we don't need to upload code again.
+Tuning is tedious and time-consuming. If we want to change a configuration, we have to upload code again, which takes around 2 minutes, and doing that a lot of time will take forever. Therefore, we create a website especially for tuning. With that, tuning is a lot faster and we don't need to upload code again.
 
 <p align="center">
   <img src="https://i.imgur.com/vuwY05H.png" width="700">
